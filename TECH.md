@@ -130,7 +130,7 @@ Handlers (recommended order):
    - mark errors, ensure state transitions are valid
 
 Core events:
-- `report.submitted`, `report.enriched`, `report.moderated`, `report.needs_moderator`, `report.approved`, `report.rejected`, `report.published`, `report.error`
+- `report.submitted`, `report.landmarked`, `report.moderated`, `report.needs_moderator`, `report.approved`, `report.rejected`, `report.published`, `report.error`
 
 ---
 
