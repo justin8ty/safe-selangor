@@ -1,7 +1,7 @@
 import { Server } from "socket.io";
 import type { Server as HttpServer } from "node:http";
 
-export let io: Server;
+export let io: Server | null = null;
 
 export function registerSockets(httpServer: HttpServer): void {
   io = new Server(httpServer, {
