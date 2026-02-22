@@ -14,6 +14,8 @@ import { trendsRoutes } from "./routes/trends.ts";
 
 const app = Fastify({ logger: true });
 
+app.decorateRequest("authUser", null);
+
 await app.register(cors, { origin: true });
 await app.register(cookie);
 
