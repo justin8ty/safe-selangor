@@ -20,7 +20,7 @@ export async function decisionHandler(
 
     const { error: queueErr } = await supabase.from("moderation_queue").upsert({
       report_id: ctx.reportId,
-      status: "pending",
+      status: "open",
     });
 
     if (queueErr) throw queueErr;
