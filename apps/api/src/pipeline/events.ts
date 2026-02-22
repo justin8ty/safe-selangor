@@ -23,6 +23,7 @@ export interface PipelineContext {
   district?: string;
   state?: string;
   aiConfidence?: number;
+  aiExplanation?: string;
   aiDecision?: "approved" | "rejected" | "needs_moderator";
   error?: Error;
 }
