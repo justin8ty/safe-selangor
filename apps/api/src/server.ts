@@ -27,6 +27,16 @@ await app.register(moderationRoutes);
 await app.register(mapRoutes);
 await app.register(trendsRoutes);
 
+// import { supabase } from "./services/supabase.ts";
+
+// app.get("/debug/db", async (_req, reply) => {
+//   const { data, error } = await supabase.from("profiles").select("*").limit(1);
+
+//   if (error) return reply.status(500).send(error);
+
+//   return { ok: true, data };
+// });
+
 await app.listen({ port: env.PORT, host: "0.0.0.0" });
 
 registerSockets(app.server);
