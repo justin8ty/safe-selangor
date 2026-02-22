@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireAuth } from "../auth/requireAuth.ts";
 import { supabase } from "../services/supabase.ts";
 import { io } from "../sockets/index.ts";
+import { getReportCard } from "../services/feed.ts";
 
 const reportIdParamsSchema = z.object({
   reportId: z.string().min(1),
@@ -136,6 +137,11 @@ export async function moderationRoutes(app: FastifyInstance): Promise<void> {
         ?.of("/moderation")
         .to("moderation")
         .emit("moderation:queue_updated", { reportId });
+
+      const feedItem = await getReportCard(reportId);
+      if (feedItem) {
+        io?.of("/feed").to("feed").emit("feed:new_report", feedItem);
+      }
 
       return reply.send({ reportId, status: "approved" });
     },
