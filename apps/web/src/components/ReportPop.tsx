@@ -1,13 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { X, MapPin, CheckCircle, PersonStanding, AlertTriangle, Eye, ShieldAlert } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, MapPin, CheckCircle, Swords, Landmark } from "lucide-react";
 
 const INCIDENT_TYPES = [
-    { id: "theft", label: "Theft", icon: PersonStanding },
-    { id: "assault", label: "Assault", icon: ShieldAlert },
-    { id: "accident", label: "Accident", icon: AlertTriangle },
-    { id: "suspicious", label: "Suspicious", icon: Eye },
+    { id: "violent", label: "Violent", icon: Swords },
+    { id: "property", label: "Property", icon: Landmark },
 ];
 
 interface ReportModalProps {
@@ -19,6 +17,15 @@ export default function ReportPop({ open, onClose }: ReportModalProps) {
     const [selectedType, setSelectedType] = useState<string | null>(null);
     const [location, setLocation] = useState("");
     const [details, setDetails] = useState("");
+
+    // Reset form when opened
+    useEffect(() => {
+        if (open) {
+            setSelectedType(null);
+            setLocation("");
+            setDetails("");
+        }
+    }, [open]);
 
     if (!open) return null;
 
@@ -32,17 +39,16 @@ export default function ReportPop({ open, onClose }: ReportModalProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/50" onClick={onClose} />
             <div className="relative bg-card border border-border rounded-xl shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto p-6">
-                {/* Header */}
                 <div className="flex items-start justify-between mb-6">
                     <div>
                         <h2 className="text-xl font-bold text-foreground">REPORT INCIDENT</h2>
                         <p className="text-sm text-muted-foreground mt-1">
-                            Help the Safe Selangor Community Stay Informed
+                            Help the Community Stay Informed
                         </p>
                     </div>
                     <button
                         onClick={onClose}
-                        className="text-muted-foreground hover:text-foreground transition-colors"
+                        className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                     >
                         <X className="w-5 h-5" />
                     </button>
@@ -95,7 +101,6 @@ export default function ReportPop({ open, onClose }: ReportModalProps) {
                     />
                 </div>
 
-                {/* Submit */}
                 <div className="flex justify-end">
                     <button
                         onClick={handleSubmit}
