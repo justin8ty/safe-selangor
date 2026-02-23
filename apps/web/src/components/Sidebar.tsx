@@ -1,26 +1,34 @@
+'use client';
+
 import { Info, Clock, ExternalLink, TrendingUp } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
+import IncidentDetailsPop, { Incident } from "./IncidentDetailsPop";
 
 const crimeIndex = 52000;
 
-const incidents = [
+const incidents: Incident[] = [
     {
-        type: "Robbery",
-        location: "Kuala Lumpur",
-        description: "Armed robbery at Maybank",
+        title: "Armed Robbery",
+        reportType: "OFFICIAL NEWS",
+        location: "Kuala Lumpur City Center",
+        description: "Armed robbery occurred at a Maybank branch. Two suspects fled the scene via a motorcycle.",
         time: "30 min ago",
         source: "The Star News",
         sourceUrl: "#",
-        color: "bg-red-500"
+        color: "bg-red-500",
+        coordinates: { lat: 3.1412, lng: 101.6865 }
     },
     {
-        type: "Public Disorder",
-        location: "Cyberjayar",
-        description: "Suspicious Activity in MRT Cyberjaya Utara Station",
-        time: "1 day ago",
-        source: "The Star News",
+        title: "Suspicious Activity",
+        reportType: "COMMUNITY REPORT",
+        location: "Sector 4 - Alleyway",
+        description: "Two individuals loitering near the server farm entrance wearing masks.",
+        time: "10m ago",
+        source: "Community App User",
         sourceUrl: "#",
-        color: "bg-amber-500"
+        color: "bg-amber-400",
+        coordinates: { lat: 54.0000, lng: 46.0000 }
     }
 ]
 
@@ -31,6 +39,8 @@ const crimeTrend = {
 }
 
 export default function Sidebar() {
+    const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
+
     return (
         <div className="flex flex-col p-6 gap-6 h-full min-w-[300px]">
 
@@ -54,12 +64,16 @@ export default function Sidebar() {
                 </div>
 
                 {incidents.map((incident, i) => (
-                    <div key={i} className="rounded-lg border border-border p-4 flex flex-col gap-2">
+                    <div
+                        key={i}
+                        onClick={() => setSelectedIncident(incident)}
+                        className="rounded-lg border border-border p-4 flex flex-col gap-2 cursor-pointer hover:bg-muted/50 transition-colors"
+                    >
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <span className={`w-2 h-2 rounded-full ${incident.color}`} />
                                 <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                    {incident.type}
+                                    {incident.title}
                                 </span>
                             </div>
                             <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -67,9 +81,10 @@ export default function Sidebar() {
                                 {incident.time}
                             </span>
                         </div>
-                        <p className="text-sm text-foreground">{incident.description}</p>
+                        <p className="text-sm text-foreground line-clamp-1">{incident.description}</p>
                         <Link
                             href={incident.sourceUrl}
+                            onClick={(e) => e.stopPropagation()}
                             className="text-xs text-primary self-end hover:underline flex items-center gap-1"
                         >
                             {incident.source} <ExternalLink size={12} />
@@ -78,14 +93,11 @@ export default function Sidebar() {
                 ))}
             </div>
 
-            <div className="border-t border-border pt-4 flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Crime Trend {crimeTrend.period}
-                </span>
-                <span className="text-sm font-semibold text-destructive flex items-center gap-1">
-                    <TrendingUp size={12} /> {crimeTrend.change}
-                </span>
-            </div>
+            <IncidentDetailsPop
+                open={!!selectedIncident}
+                onClose={() => setSelectedIncident(null)}
+                incident={selectedIncident}
+            />
         </div>
     );
 }
