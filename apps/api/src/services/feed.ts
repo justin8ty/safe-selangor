@@ -4,7 +4,6 @@ export type FeedItem = {
   reportId: string;
   state: string | null;
   district: string | null;
-  category: string | null;
   type: string | null;
   description: string | null;
   date: string | null;
@@ -14,10 +13,14 @@ export type FeedItem = {
   views: number | null;
 };
 
-export async function getReportCard(reportId: string): Promise<FeedItem | null> {
+export async function getReportCard(
+  reportId: string,
+): Promise<FeedItem | null> {
   const { data: report, error: reportErr } = await supabase
     .from("reports")
-    .select("id,state,district,category,type,description,date,created_at,status")
+    .select(
+      "id,state,district,category,type,description,date,created_at,status",
+    )
     .eq("id", reportId)
     .maybeSingle();
 
@@ -25,19 +28,21 @@ export async function getReportCard(reportId: string): Promise<FeedItem | null> 
   if (!report) return null;
   if (report.status !== "approved") return null;
 
-  const [{ data: mediaRows, error: mediaErr }, { data: metrics, error: metricsErr }] =
-    await Promise.all([
-      supabase
-        .from("report_media")
-        .select("storage_key")
-        .eq("report_id", reportId)
-        .limit(1),
-      supabase
-        .from("report_metrics")
-        .select("likes,views")
-        .eq("report_id", reportId)
-        .maybeSingle(),
-    ]);
+  const [
+    { data: mediaRows, error: mediaErr },
+    { data: metrics, error: metricsErr },
+  ] = await Promise.all([
+    supabase
+      .from("report_media")
+      .select("storage_key")
+      .eq("report_id", reportId)
+      .limit(1),
+    supabase
+      .from("report_metrics")
+      .select("likes,views")
+      .eq("report_id", reportId)
+      .maybeSingle(),
+  ]);
 
   if (mediaErr) throw mediaErr;
   if (metricsErr) throw metricsErr;
@@ -60,7 +65,7 @@ export async function getReportCard(reportId: string): Promise<FeedItem | null> 
 export async function getApprovedFeed(limit = 50): Promise<FeedItem[]> {
   const { data: reports, error: reportsErr } = await supabase
     .from("reports")
-    .select("id,state,district,category,type,description,date,created_at")
+    .select("id,state,district,type,description,date,created_at")
     .eq("status", "approved")
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -70,17 +75,19 @@ export async function getApprovedFeed(limit = 50): Promise<FeedItem[]> {
   const reportIds = (reports ?? []).map((r) => r.id as string);
   if (reportIds.length === 0) return [];
 
-  const [{ data: media, error: mediaErr }, { data: metrics, error: metricsErr }] =
-    await Promise.all([
-      supabase
-        .from("report_media")
-        .select("report_id,storage_key")
-        .in("report_id", reportIds),
-      supabase
-        .from("report_metrics")
-        .select("report_id,likes,views")
-        .in("report_id", reportIds),
-    ]);
+  const [
+    { data: media, error: mediaErr },
+    { data: metrics, error: metricsErr },
+  ] = await Promise.all([
+    supabase
+      .from("report_media")
+      .select("report_id,storage_key")
+      .in("report_id", reportIds),
+    supabase
+      .from("report_metrics")
+      .select("report_id,likes,views")
+      .in("report_id", reportIds),
+  ]);
 
   if (mediaErr) throw mediaErr;
   if (metricsErr) throw metricsErr;

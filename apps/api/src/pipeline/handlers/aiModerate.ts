@@ -29,7 +29,12 @@ export async function aiModerateHandler(
       .from("reports")
       .update({ ai_confidence: 0, ai_explanation: explanation })
       .eq("id", ctx.reportId);
-    return { ...ctx, aiDecision: "needs_moderator", aiConfidence: 0, aiExplanation: explanation };
+    return {
+      ...ctx,
+      aiDecision: "needs_moderator",
+      aiConfidence: 0,
+      aiExplanation: explanation,
+    };
   }
 
   try {
@@ -53,7 +58,6 @@ export async function aiModerateHandler(
     const contextText = [
       report?.state ? `state=${report.state}` : null,
       report?.district ? `district=${report.district}` : null,
-      report?.category ? `category=${report.category}` : null,
       report?.type ? `type=${report.type}` : null,
       report?.description ? `description=${report.description}` : null,
     ]
@@ -78,7 +82,10 @@ export async function aiModerateHandler(
 
     const { error: updErr } = await supabase
       .from("reports")
-      .update({ ai_confidence: result.confidence, ai_explanation: result.explanation })
+      .update({
+        ai_confidence: result.confidence,
+        ai_explanation: result.explanation,
+      })
       .eq("id", ctx.reportId);
 
     if (updErr) throw updErr;
