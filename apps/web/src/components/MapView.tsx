@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import Map, { NavigationControl, Source, Layer, MapRef } from "react-map-gl/mapbox";
+import Map, { NavigationControl, Source, Layer, MapRef, type MapMouseEvent } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import MapRegionPopup, { RegionInfo } from "./MapRegionPopup";
 
@@ -59,10 +59,11 @@ export default function MapView() {
     const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
     const [cursor, setCursor] = useState<string>('grab');
 
-    const handleMapClick = useCallback((event: any) => {
+    const handleMapClick = useCallback((event: MapMouseEvent) => {
         const feature = event.features && event.features[0];
-        if (feature && feature.properties && feature.properties.name) {
-            setSelectedRegion(feature.properties.name);
+        const name = (feature as any)?.properties?.name;
+        if (typeof name === "string" && name.length) {
+            setSelectedRegion(name);
         } else {
             setSelectedRegion(null);
         }

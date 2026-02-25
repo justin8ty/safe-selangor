@@ -1,28 +1,22 @@
 export interface CreateReportInput {
-    storageKeys: string[];
-    lat: number;
-    lng: number;
-    state: string;
+    reportId: string;
     district: string;
-    category: string;
-    type: string;
-    description?: string;
-    date?: string;
+    storageKeys: string[];
+    type: "violent" | "property";
+    details?: string;
 }
 
 export interface Report {
     id: string;
     user_id: string;
-    category: string;
-    type: string;
+    type: "violent" | "property" | null;
     description: string | null;
-    date: string;
-    status: "pending" | "approved" | "rejected";
+    status: "needs_moderator" | "approved" | "rejected";
     ai_confidence: number | null;
-    ai_explanation: string | null;
     created_at: string;
-    district: string;
-    state: string;
+    district: string | null;
+    state: string | null;
+    landmark_label?: string | null;
 }
 
 export interface ModerationQueueItem {
@@ -36,7 +30,6 @@ export interface FeedItem {
     reportId: string;
     state: string | null;
     district: string | null;
-    category: string | null;
     type: string | null;
     description: string | null;
     date: string | null;
@@ -44,4 +37,5 @@ export interface FeedItem {
     mediaKey: string | null;
     likes: number | null;
     views: number | null;
+    landmarkLabel?: string | null;
 }

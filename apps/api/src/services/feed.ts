@@ -4,6 +4,7 @@ export type FeedItem = {
   reportId: string;
   state: string | null;
   district: string | null;
+  landmarkLabel?: string | null;
   type: string | null;
   description: string | null;
   date: string | null;
@@ -19,7 +20,7 @@ export async function getReportCard(
   const { data: report, error: reportErr } = await supabase
     .from("reports")
     .select(
-      "id,state,district,category,type,description,date,created_at,status",
+      "id,state,district,landmark_label,type,description,date,created_at,status",
     )
     .eq("id", reportId)
     .maybeSingle();
@@ -51,7 +52,7 @@ export async function getReportCard(
     reportId: report.id as string,
     state: (report.state ?? null) as string | null,
     district: (report.district ?? null) as string | null,
-    category: (report.category ?? null) as string | null,
+    landmarkLabel: (report.landmark_label ?? null) as string | null,
     type: (report.type ?? null) as string | null,
     description: (report.description ?? null) as string | null,
     date: (report.date ?? null) as string | null,
@@ -65,7 +66,7 @@ export async function getReportCard(
 export async function getApprovedFeed(limit = 50): Promise<FeedItem[]> {
   const { data: reports, error: reportsErr } = await supabase
     .from("reports")
-    .select("id,state,district,type,description,date,created_at")
+    .select("id,state,district,landmark_label,type,description,date,created_at")
     .eq("status", "approved")
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -115,7 +116,7 @@ export async function getApprovedFeed(limit = 50): Promise<FeedItem[]> {
       reportId: rid,
       state: (r.state ?? null) as string | null,
       district: (r.district ?? null) as string | null,
-      category: (r.category ?? null) as string | null,
+      landmarkLabel: (r.landmark_label ?? null) as string | null,
       type: (r.type ?? null) as string | null,
       description: (r.description ?? null) as string | null,
       date: (r.date ?? null) as string | null,

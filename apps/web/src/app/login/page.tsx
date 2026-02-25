@@ -6,7 +6,6 @@ import { supabase } from "@/lib/supabase";
 import { useMutation } from "@tanstack/react-query";
 import { loginUser } from "@/lib/services";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,7 +33,11 @@ export default function LoginPage() {
             });
             router.push("/");
         },
-        onError: (error: any) => console.log("Login failed:", error.message),
+        onError: (error: unknown) =>
+            console.log(
+                "Login failed:",
+                error instanceof Error ? error.message : String(error)
+            ),
     });
 
     return (
@@ -85,7 +88,7 @@ export default function LoginPage() {
                                 {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing in...</> : "Sign In"}
                             </Button>
                             <div className="text-center text-sm text-muted-foreground">
-                                Don't have an account?{" "}
+                                Don&apos;t have an account?{" "}
                                 <Link
                                     href="/signup"
                                     className="font-medium text-primary hover:underline"

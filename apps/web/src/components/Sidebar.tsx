@@ -53,7 +53,7 @@ export default function Sidebar() {
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                    {incident.category}
+                                    {incident.type}
                                 </span>
                             </div>
                             <span className="text-xs text-muted-foreground flex items-center gap-1">

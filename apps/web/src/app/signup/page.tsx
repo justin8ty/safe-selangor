@@ -43,8 +43,8 @@ export default function SignupPage() {
             });
             router.push("/");
         },
-        onError: (error: any) => {
-            if (error.message === "Passwords do not match") {
+        onError: (error: unknown) => {
+            if (error instanceof Error && error.message === "Passwords do not match") {
                 toast.error(error.message);
             }
         },

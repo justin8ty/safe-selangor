@@ -5,6 +5,7 @@ import { PipelineEvents } from "../events.ts";
 import { env } from "../../config/env.ts";
 import { supabase } from "../../services/supabase.ts";
 import { moderateCrimeSceneWithGemini } from "../../services/gemini.ts";
+import { mergeDescriptionParts } from "../../services/text.ts";
 
 function inferMimeTypeFromKey(
   storageKey: string,
@@ -27,20 +28,20 @@ export async function aiModerateHandler(
     const explanation = "Unsupported image type for AI moderation";
     await supabase
       .from("reports")
-      .update({ ai_confidence: 0, ai_explanation: explanation })
+      .update({ ai_confidence: 0 })
       .eq("id", ctx.reportId);
     return {
       ...ctx,
       aiDecision: "needs_moderator",
       aiConfidence: 0,
-      aiExplanation: explanation,
+      aiCaption: "",
     };
   }
 
   try {
     const { data: report, error: reportErr } = await supabase
       .from("reports")
-      .select("category,type,description,state,district")
+      .select("type,description,state,district,landmark_label")
       .eq("id", ctx.reportId)
       .maybeSingle();
 
@@ -59,6 +60,7 @@ export async function aiModerateHandler(
       report?.state ? `state=${report.state}` : null,
       report?.district ? `district=${report.district}` : null,
       report?.type ? `type=${report.type}` : null,
+      report?.landmark_label ? `near=${report.landmark_label}` : null,
       report?.description ? `description=${report.description}` : null,
     ]
       .filter(Boolean)
@@ -73,10 +75,15 @@ export async function aiModerateHandler(
 
     const aiDecision = result.confidence >= 90 ? "approved" : "needs_moderator";
 
+    const mergedDescription = mergeDescriptionParts(
+      report?.description as string | null,
+      result.caption,
+    );
+
     const nextCtx: PipelineContext = {
       ...ctx,
       aiConfidence: result.confidence,
-      aiExplanation: result.explanation,
+      aiCaption: result.caption,
       aiDecision,
     };
 
@@ -84,7 +91,7 @@ export async function aiModerateHandler(
       .from("reports")
       .update({
         ai_confidence: result.confidence,
-        ai_explanation: result.explanation,
+        description: mergedDescription,
       })
       .eq("id", ctx.reportId);
 
@@ -97,13 +104,13 @@ export async function aiModerateHandler(
       err instanceof Error ? err.message : "Gemini moderation failed";
     await supabase
       .from("reports")
-      .update({ ai_confidence: 0, ai_explanation: explanation })
+      .update({ ai_confidence: 0 })
       .eq("id", ctx.reportId);
 
     const nextCtx: PipelineContext = {
       ...ctx,
       aiConfidence: 0,
-      aiExplanation: explanation,
+      aiCaption: "",
       aiDecision: "needs_moderator",
     };
 

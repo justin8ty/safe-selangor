@@ -1,4 +1,4 @@
-import axios, { type InternalAxiosRequestConfig } from "axios";
+import axios, { type AxiosRequestConfig, type InternalAxiosRequestConfig } from "axios";
 import { toast } from "sonner";
 import { supabase } from "./supabase";
 
@@ -40,12 +40,12 @@ axiosInstance.interceptors.response.use(
     }
 );
 
-export async function getRequest({ url, config }: { url: string; config?: any }) {
+export async function getRequest({ url, config }: { url: string; config?: AxiosRequestConfig }) {
     const response = await axiosInstance.get(url, config);
     return response.data;
 }
 
-export async function postRequest({ url, data, config }: { url: string; data?: any; config?: any }) {
+export async function postRequest({ url, data, config }: { url: string; data?: unknown; config?: AxiosRequestConfig }) {
     const response = await axiosInstance.post(url, data, {
         headers: { "Content-Type": "application/json" },
         ...config,
@@ -53,7 +53,7 @@ export async function postRequest({ url, data, config }: { url: string; data?: a
     return response.data;
 }
 
-export async function postFormRequest({ url, data, config }: { url: string; data?: any; config?: any }) {
+export async function postFormRequest({ url, data, config }: { url: string; data?: unknown; config?: AxiosRequestConfig }) {
     const response = await axiosInstance.post(url, data, {
         headers: { "Content-Type": "multipart/form-data" },
         ...config,
@@ -61,7 +61,7 @@ export async function postFormRequest({ url, data, config }: { url: string; data
     return response.data;
 }
 
-export async function deleteRequest({ url, data, config }: { url: string; data?: any; config?: any }) {
+export async function deleteRequest({ url, data, config }: { url: string; data?: unknown; config?: AxiosRequestConfig }) {
     const response = await axiosInstance.delete(url, {
         data,
         ...config

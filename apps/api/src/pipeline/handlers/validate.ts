@@ -7,13 +7,7 @@ export async function validateHandler(
     throw new Error("Missing reportId/userId");
   }
 
-  if (!ctx.storageKeys?.length) {
-    throw new Error("Missing storage keys");
-  }
-
-  if (typeof ctx.lat !== "number" || typeof ctx.lng !== "number") {
-    throw new Error("Missing location");
-  }
+  // Location and media are validated by their respective steps or DB state.
 
   return ctx;
 }

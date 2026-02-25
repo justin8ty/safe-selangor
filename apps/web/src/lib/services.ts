@@ -14,7 +14,15 @@ export async function getProfile() {
 }
 
 export async function createReport(data: CreateReportInput) {
-    return await postRequest({ url: "/reports", data });
+    return await postRequest({ url: "/reports/submit", data });
+}
+
+export async function createReportDraft(data: { lat: number; lng: number }) {
+    return await postRequest({ url: "/reports/draft", data });
+}
+
+export async function getDistricts() {
+    return await getRequest({ url: "/districts" });
 }
 
 export async function getFeed() {

@@ -37,7 +37,7 @@ export async function moderationRoutes(app: FastifyInstance): Promise<void> {
       const { data: reports, error: reportsErr } = await supabase
         .from("reports")
         .select(
-          "id,user_id,category,type,description,date,status,ai_confidence,ai_explanation,created_at,district,state",
+          "id,user_id,type,description,date,status,ai_confidence,created_at,district,state,landmark_label",
         )
         .in("id", reportIds);
 
