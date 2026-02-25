@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useMutation } from "@tanstack/react-query";
+import { loginUser } from "@/lib/services";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -25,12 +26,15 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
 
     const { mutate: login, isPending } = useMutation({
-        mutationFn: async () => {
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) throw error;
+        mutationFn: () => loginUser({ email, password }),
+        onSuccess: async (data) => {
+            await supabase.auth.setSession({
+                access_token: data.accessToken,
+                refresh_token: data.refreshToken,
+            });
+            router.push("/");
         },
-        onSuccess: () => router.push("/"),
-        onError: (error: any) => toast.error(error.message),
+        onError: (error: any) => console.log("Login failed:", error.message),
     });
 
     return (

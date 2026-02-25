@@ -27,9 +27,11 @@ axiosInstance.interceptors.response.use(
         const message = error.response?.data?.error || error.message || "An unexpected error occurred.";
 
         if (status === 401) {
-            toast.error("Session expired.");
-            await supabase.auth.signOut();
-            window.location.href = "/login";
+            if (!window.location.pathname.includes("/login")) {
+                toast.error("Session expired.");
+                await supabase.auth.signOut();
+                window.location.href = "/login";
+            }
         } else {
             toast.error(message);
         }

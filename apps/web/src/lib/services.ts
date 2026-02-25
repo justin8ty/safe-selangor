@@ -1,6 +1,14 @@
 import { getRequest, postRequest } from "./interceptor";
 import { CreateReportInput } from "@/types";
 
+export async function loginUser(data: { email: string; password: string }) {
+    return await postRequest({ url: "/auth/login", data });
+}
+
+export async function registerUser(data: { email: string; password: string }) {
+    return await postRequest({ url: "/auth/register", data });
+}
+
 export async function getProfile() {
     return await getRequest({ url: "/auth/me " });
 }
