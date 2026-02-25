@@ -2,6 +2,11 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { useMutation } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -13,9 +18,20 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
+    const router = useRouter();
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+
+    const { mutate: login, isPending } = useMutation({
+        mutationFn: async () => {
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) throw error;
+        },
+        onSuccess: () => router.push("/"),
+        onError: (error: any) => toast.error(error.message),
+    });
 
     return (
         <div className="relative flex h-full flex-1 flex-col items-center justify-center overflow-hidden bg-background">
@@ -31,13 +47,18 @@ export default function LoginPage() {
                             Enter your details to sign in
                         </CardDescription>
                     </CardHeader>
-                    <form>
+                    <form onSubmit={(e) => {
+                        e.preventDefault();
+                        login();
+                    }}>
                         <CardContent className="space-y-4">
                             <div className="space-y-2">
                                 <Label htmlFor="email">Email</Label>
                                 <Input
                                     id="email"
                                     type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
                                     placeholder="john@example.com"
                                     required
                                     className="bg-background/50 transition-colors focus:bg-background"
@@ -48,14 +69,16 @@ export default function LoginPage() {
                                 <Input
                                     id="password"
                                     type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
                                     required
                                     className="bg-background/50 transition-colors focus:bg-background"
                                 />
                             </div>
                         </CardContent>
                         <CardFooter className="mt-4 flex flex-col space-y-4">
-                            <Button type="submit" className="w-full">
-                                Sign In
+                            <Button type="submit" className="w-full" disabled={isPending}>
+                                {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing in...</> : "Sign In"}
                             </Button>
                             <div className="text-center text-sm text-muted-foreground">
                                 Don't have an account?{" "}

@@ -36,12 +36,6 @@ export default function Navbar() {
                         </div>
 
                         <div className="flex items-center gap-4">
-                            <Link
-                                href="/login"
-                                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-4 py-2"
-                            >
-                                Log in
-                            </Link>
                             <button
                                 onClick={() => setReportOpen(true)}
                                 className="bg-destructive text-destructive-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-destructive/90 transition-colors cursor-pointer"
