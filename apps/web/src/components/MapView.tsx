@@ -88,7 +88,7 @@ export default function MapView() {
     }, []);
 
     useEffect(() => {
-        fetch("/sel-pj-polygons.geojson")
+        fetch("/map.geojson")
             .then((res) => res.json())
             .then((geojson: GeoJSON.FeatureCollection) => {
                 const merged = {
