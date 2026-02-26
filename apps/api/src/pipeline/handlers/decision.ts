@@ -27,8 +27,7 @@ export async function decisionHandler(
 
     bus.emit(PipelineEvents.NEEDS_MODERATOR, { ...ctx, aiDecision: decision });
 
-    io
-      ?.of("/moderation")
+    io?.of("/moderation")
       .to("moderation")
       .emit("moderation:queue_updated", { reportId: ctx.reportId });
     return { ...ctx, aiDecision: decision };

@@ -33,16 +33,23 @@ function toPointFeature(lat: number, lng: number) {
   return {
     type: "Feature" as const,
     properties: {},
-    geometry: { type: "Point" as const, coordinates: [lng, lat] as [number, number] },
+    geometry: {
+      type: "Point" as const,
+      coordinates: [lng, lat] as [number, number],
+    },
   };
 }
 
-function getName(feature: GeoJsonFeatureCollection["features"][number]): string | null {
+function getName(
+  feature: GeoJsonFeatureCollection["features"][number],
+): string | null {
   const name = feature.properties?.name;
   return typeof name === "string" && name.trim().length ? name.trim() : null;
 }
 
-function roughCentroid(feature: GeoJsonFeatureCollection["features"][number]): [number, number] | null {
+function roughCentroid(
+  feature: GeoJsonFeatureCollection["features"][number],
+): [number, number] | null {
   const geom = feature.geometry;
   const ring =
     geom.type === "Polygon"

@@ -92,7 +92,8 @@ export async function moderationRoutes(app: FastifyInstance): Promise<void> {
 
       const reportId = parsedParams.data.reportId;
       const moderatorId = req.authUser?.userId;
-      if (!moderatorId) return reply.status(401).send({ error: "Unauthorized" });
+      if (!moderatorId)
+        return reply.status(401).send({ error: "Unauthorized" });
 
       const { data: existing, error: findErr } = await supabase
         .from("reports")
@@ -104,7 +105,8 @@ export async function moderationRoutes(app: FastifyInstance): Promise<void> {
         req.log.error({ error: findErr }, "Failed to lookup report");
         return reply.status(500).send({ error: "Failed to lookup report" });
       }
-      if (!existing) return reply.status(404).send({ error: "Report not found" });
+      if (!existing)
+        return reply.status(404).send({ error: "Report not found" });
 
       const { error: reportErr } = await supabase
         .from("reports")
@@ -131,11 +133,13 @@ export async function moderationRoutes(app: FastifyInstance): Promise<void> {
           action: "approve",
         });
       if (actionErr) {
-        req.log.warn({ error: actionErr }, "Failed to insert moderation action");
+        req.log.warn(
+          { error: actionErr },
+          "Failed to insert moderation action",
+        );
       }
 
-      io
-        ?.of("/moderation")
+      io?.of("/moderation")
         .to("moderation")
         .emit("moderation:queue_updated", { reportId });
 
@@ -159,7 +163,8 @@ export async function moderationRoutes(app: FastifyInstance): Promise<void> {
 
       const reportId = parsedParams.data.reportId;
       const moderatorId = req.authUser?.userId;
-      if (!moderatorId) return reply.status(401).send({ error: "Unauthorized" });
+      if (!moderatorId)
+        return reply.status(401).send({ error: "Unauthorized" });
 
       const { data: existing, error: findErr } = await supabase
         .from("reports")
@@ -171,7 +176,8 @@ export async function moderationRoutes(app: FastifyInstance): Promise<void> {
         req.log.error({ error: findErr }, "Failed to lookup report");
         return reply.status(500).send({ error: "Failed to lookup report" });
       }
-      if (!existing) return reply.status(404).send({ error: "Report not found" });
+      if (!existing)
+        return reply.status(404).send({ error: "Report not found" });
 
       const { error: reportErr } = await supabase
         .from("reports")
@@ -198,11 +204,13 @@ export async function moderationRoutes(app: FastifyInstance): Promise<void> {
           action: "reject",
         });
       if (actionErr) {
-        req.log.warn({ error: actionErr }, "Failed to insert moderation action");
+        req.log.warn(
+          { error: actionErr },
+          "Failed to insert moderation action",
+        );
       }
 
-      io
-        ?.of("/moderation")
+      io?.of("/moderation")
         .to("moderation")
         .emit("moderation:queue_updated", { reportId });
 

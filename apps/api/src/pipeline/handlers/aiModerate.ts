@@ -117,7 +117,9 @@ export async function aiModerateHandler(
     // API logs capture the underlying reason.
     const explanation =
       err instanceof Error ? err.message : "Gemini moderation failed";
-    console.warn(`Gemini moderation failed for report ${ctx.reportId}: ${explanation}`);
+    console.warn(
+      `Gemini moderation failed for report ${ctx.reportId}: ${explanation}`,
+    );
     await supabase
       .from("reports")
       .update({ ai_confidence: 0 })
