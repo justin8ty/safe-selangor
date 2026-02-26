@@ -23,6 +23,19 @@ export async function aiModerateHandler(
   const key = ctx.storageKeys?.[0];
   if (!key) return { ...ctx, aiDecision: "needs_moderator", aiConfidence: 0 };
 
+  if (!env.GEMINI_API_KEY) {
+    await supabase
+      .from("reports")
+      .update({ ai_confidence: 0 })
+      .eq("id", ctx.reportId);
+    return {
+      ...ctx,
+      aiDecision: "needs_moderator",
+      aiConfidence: 0,
+      aiCaption: "",
+    };
+  }
+
   const mimeType = inferMimeTypeFromKey(key);
   if (!mimeType) {
     const explanation = "Unsupported image type for AI moderation";
@@ -100,8 +113,11 @@ export async function aiModerateHandler(
     bus.emit(PipelineEvents.MODERATED, nextCtx);
     return nextCtx;
   } catch (err) {
+    // Fail closed (needs_moderator) and don't block the pipeline.
+    // API logs capture the underlying reason.
     const explanation =
       err instanceof Error ? err.message : "Gemini moderation failed";
+    console.warn(`Gemini moderation failed for report ${ctx.reportId}: ${explanation}`);
     await supabase
       .from("reports")
       .update({ ai_confidence: 0 })

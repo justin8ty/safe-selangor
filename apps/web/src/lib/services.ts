@@ -25,6 +25,10 @@ export async function getDistricts() {
     return await getRequest({ url: "/districts" });
 }
 
+export async function getReport(reportId: string) {
+    return await getRequest({ url: `/reports/${reportId}` });
+}
+
 export async function getFeed() {
     return await getRequest({ url: "/feed" });
 }

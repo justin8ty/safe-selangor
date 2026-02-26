@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { X, MapPin, CheckCircle, Swords, Landmark } from "lucide-react";
-import { createReportDraft, createReport } from "@/lib/services";
+import { createReportDraft, createReport, getReport } from "@/lib/services";
 import { postRequest } from "@/lib/interceptor";
+import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
 const INCIDENT_TYPES = [
@@ -117,21 +118,19 @@ export default function ReportPop({ open, onClose }: ReportModalProps) {
             data: { files: [{ mime: f.type }] },
         });
 
+        const bucket = sign?.bucket as string | undefined;
         const upload = sign.uploads?.[0];
-        if (!upload?.signedUrl || !upload?.path) {
+        if (!bucket || !upload?.path || !upload?.token) {
             throw new Error("Failed to sign upload");
         }
 
-        const putRes = await fetch(upload.signedUrl, {
-            method: "PUT",
-            headers: { "content-type": f.type },
-            body: f,
-        });
+        const { error } = await supabase.storage
+            .from(bucket)
+            .uploadToSignedUrl(upload.path as string, upload.token as string, f, {
+                contentType: f.type,
+            });
 
-        if (!putRes.ok) {
-            const text = await putRes.text().catch(() => "");
-            throw new Error(`Upload failed (${putRes.status}): ${text}`);
-        }
+        if (error) throw new Error(`Upload failed: ${error.message}`);
 
         return upload.path as string;
     }
@@ -150,6 +149,14 @@ export default function ReportPop({ open, onClose }: ReportModalProps) {
                 storageKeys: [storageKey],
                 details: details.trim().length ? details.trim() : undefined,
             });
+
+            // Best-effort: show AI moderation updates quickly if they land.
+            for (let i = 0; i < 6; i++) {
+                await new Promise((r) => setTimeout(r, 1000));
+                const res = await getReport(reportId).catch(() => null);
+                const ai = res?.report?.ai_confidence;
+                if (typeof ai === "number" && ai > 0) break;
+            }
 
             toast.success("Report submitted. Pending verification.");
             onClose();

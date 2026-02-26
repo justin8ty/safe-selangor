@@ -168,8 +168,37 @@ export async function reportsRoutes(app: FastifyInstance): Promise<void> {
     return reply.status(200).send({ reportId: parsed.data.reportId });
   });
 
-  app.get("/reports/:id", { preHandler: requireAuth }, async (_req, reply) => {
-    return reply.status(501).send({ error: "Not implemented" });
+  // Lightweight debug/read endpoint so the web app can verify
+  // pipeline side effects (ai_confidence, description, status).
+  app.get("/reports/:id", { preHandler: requireAuth }, async (req, reply) => {
+    const id = (req.params as { id?: unknown })?.id;
+    if (typeof id !== "string" || !id.trim().length) {
+      return reply.status(400).send({ error: "Invalid report id" });
+    }
+
+    const userId = req.authUser?.userId;
+    if (!userId) return reply.status(401).send({ error: "Unauthorized" });
+
+    const { data, error } = await supabase
+      .from("reports")
+      .select(
+        "id,user_id,type,description,status,ai_confidence,created_at,district,state,landmark_label",
+      )
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) {
+      req.log.error({ error }, "Failed to fetch report");
+      return reply.status(500).send({ error: "Failed to fetch report" });
+    }
+    if (!data) return reply.status(404).send({ error: "Report not found" });
+
+    // Owner or moderator can read it.
+    if ((data.user_id as string) !== userId && req.authUser?.role !== "moderator") {
+      return reply.status(403).send({ error: "Forbidden" });
+    }
+
+    return reply.send({ report: data });
   });
 
   app.post(
