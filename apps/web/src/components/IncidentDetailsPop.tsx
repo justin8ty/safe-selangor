@@ -1,6 +1,6 @@
 "use client";
 
-import { X, MapPin, Clock, ImageIcon, ShieldAlert, ChevronLeft, ChevronRight, Landmark } from "lucide-react";
+import { X, MapPin, Clock, ImageIcon, ShieldAlert, ChevronLeft, ChevronRight, Landmark, ShieldCheck, Sparkles } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useEffect, useMemo, useState } from "react";
 
@@ -12,6 +12,7 @@ export interface Incident {
     mediaKey: string | null;
     mediaKeys?: string[];
     landmarkLabel?: string | null;
+    aiConfidence?: number | null;
 }
 
 interface IncidentDetailsPopProps {
@@ -44,6 +45,8 @@ export default function IncidentDetailsPop({ open, onClose, incident }: Incident
     const canNext = activeIndex < mediaKeys.length - 1;
     const activeKey = mediaKeys[activeIndex] ?? null;
 
+    const isGeminiVerified = (incident?.aiConfidence ?? 0) >= 90;
+
     if (!open || !incident) return null;
 
     return (
@@ -74,8 +77,14 @@ export default function IncidentDetailsPop({ open, onClose, incident }: Incident
                                 }`} />
                             {incident.type ?? "Unknown"}
                         </span>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded bg-muted text-muted-foreground border border-border">
-                            Community Report
+                        <span
+                            className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded border border-border inline-flex items-center gap-1 ${isGeminiVerified
+                                ? "bg-cyan-500/10 text-cyan-500"
+                                : "bg-green-500/10 text-green-600"
+                                }`}
+                        >
+                            {isGeminiVerified ? <Sparkles className="w-3 h-3" /> : <ShieldCheck className="w-3 h-3" />}
+                            {isGeminiVerified ? "Gemini Verified" : "Moderator Verified"}
                         </span>
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                             <Clock className="w-3.5 h-3.5" />
