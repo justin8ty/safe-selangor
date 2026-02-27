@@ -153,6 +153,10 @@
     @apply border-border outline-ring/50;
   }
 
+  html {
+    font-size: 112.5% !important;
+  }
+
   body {
     @apply bg-background text-foreground;
   }
