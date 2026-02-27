@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import globalData from "@/config/global.json";
 import ReportPop from "@/components/ReportPop";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,7 +20,16 @@ export default function Topnav() {
         <>
             <nav className="flex items-center justify-between px-6 py-4 border-b border-border bg-card sticky">
                 <Link href="/" className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-primary rounded-lg" />
+                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                        <Image
+                            src="/logo.png"
+                            alt="Safe Selangor"
+                            width={48}
+                            height={48}
+                            className="w-12 h-12 object-contain"
+                            priority
+                        />
+                    </div>
                     <div>
                         <h1 className="font-semibold text-foreground">{globalData.header.title}</h1>
                         <p className="text-sm text-muted-foreground">{globalData.header.subtitle}</p>
