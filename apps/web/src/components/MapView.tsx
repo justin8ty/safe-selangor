@@ -237,6 +237,7 @@ export default function MapView({ highlightDistrict, disableInteraction, feedIte
                         description: inc.description,
                         time: inc.time,
                         mediaKey: null,
+                        mediaKeys: [],
                     })}
                 />
             )}
