@@ -37,8 +37,7 @@ export async function getReportCard(
     supabase
       .from("report_media")
       .select("storage_key")
-      .eq("report_id", reportId)
-      .order("created_at", { ascending: true }),
+      .eq("report_id", reportId),
     supabase
       .from("report_metrics")
       .select("likes,views")
