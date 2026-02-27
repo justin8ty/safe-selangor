@@ -38,7 +38,6 @@ App tables:
 - `reports(id, user_id, state, district, category, type, date, description, status, ai_confidence, created_at)`
 - `report_location_private(report_id pk/fk, lat, lng)` (never returned to public clients)
 - `report_media(id, report_id, storage_key)`
-- `moderation_queue(report_id pk/fk, status)`
 - `moderation_actions(id, report_id, moderator_profile_id, action)`
 - `report_metrics(report_id pk/fk, likes int, views int)`
 - `report_likes(report_id, user_id, unique(report_id,user_id))`
@@ -136,7 +135,7 @@ Core events:
 
 **8) API Surface (Fastify)**
 Auth (Supabase Auth):
-- Client signs in with Supabase Auth (email OTP/magic link).
+- Client signs in with Supabase Auth (email+password).
 - API validates the Supabase access token on each request and derives `profile_id` from the token subject.
 - Auth header convention: `Authorization: Bearer <supabase_access_token>`.
 - Suggested endpoints (optional):
@@ -192,7 +191,7 @@ Fallback:
 
 **10) Next.js UI Plan**
 Routes:
-- `/login` (Supabase Auth email OTP/magic link)
+- `/login` (Supabase Auth email+password)
 - `/` (Map + sidebar feed; filters; district panel)
 - `/report/new` (GPS permission + image upload + category/type + description prefilled with landmark label)
 - `/report/[id]` (details)
@@ -293,7 +292,7 @@ API:
 2. District GeoJSON wired into:
     - Mapbox choropleth rendering
     - point-in-polygon district assignment
- 3. Auth (Supabase Auth email OTP/magic link) + API token validation
+ 3. Auth (Supabase Auth email+password) + API token validation
 4. Report submission (signed upload → create report → pipeline)
 5. Google Places automatic landmark label step
 6. Gemini moderation + threshold routing

@@ -12,12 +12,46 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { useMutation } from "@tanstack/react-query";
+import { registerUser } from "@/lib/services";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+
+
 
 export default function SignupPage() {
+    const router = useRouter();
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+
+    const { mutate: register, isPending } = useMutation({
+        mutationFn: () => {
+            if (password !== confirmPassword) {
+                throw new Error("Passwords do not match");
+            }
+
+            return registerUser({ email, password });
+        },
+        onSuccess: async (data) => {
+            await supabase.auth.setSession({
+                access_token: data.accessToken,
+                refresh_token: data.refreshToken,
+            });
+            router.push("/");
+        },
+        onError: (error: unknown) => {
+            if (error instanceof Error && error.message === "Passwords do not match") {
+                toast.error(error.message);
+            }
+        },
+    });
 
     return (
         <div className="relative flex h-full flex-1 flex-col items-center justify-center overflow-hidden bg-background">
-            {/* Background ambient lighting */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_var(--tw-gradient-stops))] from-primary/20 via-background to-background" />
 
             <div className="z-10 w-full max-w-md px-4">
@@ -30,18 +64,8 @@ export default function SignupPage() {
                             Enter your details below to create your account
                         </CardDescription>
                     </CardHeader>
-                    <form>
+                    <form onSubmit={(e) => { e.preventDefault(); register(); }}>
                         <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="name">Full Name</Label>
-                                <Input
-                                    id="name"
-                                    type="text"
-                                    placeholder="John Doe"
-                                    required
-                                    className="bg-background/50 transition-colors focus:bg-background"
-                                />
-                            </div>
                             <div className="space-y-2">
                                 <Label htmlFor="email">Email</Label>
                                 <Input
@@ -49,6 +73,8 @@ export default function SignupPage() {
                                     type="email"
                                     placeholder="john@example.com"
                                     required
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
                                     className="bg-background/50 transition-colors focus:bg-background"
                                 />
                             </div>
@@ -58,6 +84,8 @@ export default function SignupPage() {
                                     id="password"
                                     type="password"
                                     required
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
                                     className="bg-background/50 transition-colors focus:bg-background"
                                 />
                             </div>
@@ -67,14 +95,17 @@ export default function SignupPage() {
                                     id="confirm-password"
                                     type="password"
                                     required
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
                                     className="bg-background/50 transition-colors focus:bg-background"
                                 />
                             </div>
                         </CardContent>
                         <CardFooter className="mt-4 flex flex-col space-y-4">
-                            <Button type="submit" className="w-full">
-                                Create Account
+                            <Button type="submit" className="w-full" disabled={isPending}>
+                                {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating account...</> : "Create Account"}
                             </Button>
+
                             <div className="text-center text-sm text-muted-foreground">
                                 Already have an account?{" "}
                                 <Link

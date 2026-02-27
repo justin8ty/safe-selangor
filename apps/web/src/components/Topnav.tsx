@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Search } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import globalData from "@/config/global.json";
-import ReportPop from "@/components/ReportPop"
+import ReportPop from "@/components/ReportPop";
 
 export default function Navbar() {
     const [reportOpen, setReportOpen] = useState(false);
@@ -26,22 +25,7 @@ export default function Navbar() {
 
                 {!isAuthPage && (
                     <>
-                        <div className="relative w-full max-w-md mx-8">
-                            <input
-                                type="text"
-                                placeholder="Search areas or incident"
-                                className="w-full rounded-lg border border-input bg-background px-4 py-2 pl-10 text-sm text-foreground placeholder:text-muted-foreground"
-                            />
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                        </div>
-
                         <div className="flex items-center gap-4">
-                            <Link
-                                href="/login"
-                                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-4 py-2"
-                            >
-                                Log in
-                            </Link>
                             <button
                                 onClick={() => setReportOpen(true)}
                                 className="bg-destructive text-destructive-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-destructive/90 transition-colors cursor-pointer"

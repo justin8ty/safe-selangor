@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import Map, { NavigationControl, Source, Layer, MapRef } from "react-map-gl/mapbox";
+import Map, { NavigationControl, Source, Layer, MapRef, type MapMouseEvent } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import MapRegionPopup, { RegionInfo } from "./MapRegionPopup";
+import { FeedItem } from "@/types";
+import { formatRelativeTime } from "@/lib/utils";
+import IncidentDetailsPop, { Incident } from "./IncidentDetailsPop";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 const SELANGOR_BOUNDS = [101.3, 2.85, 102.0, 3.35];
@@ -13,7 +16,8 @@ const DEMO_CRIME_DATA: Record<string, number> = {
     "Petaling Jaya": 1850,
     "Shah Alam": 1200,
     "Subang Jaya": 1600,
-    "Klang": 0,
+    "Klang Utara": 0,
+    "Klang Selatan": 0,
     "Sepang": 0,
     "Putrajaya": 210,
     "Gombak": 950,
@@ -27,41 +31,42 @@ const DEMO_CRIME_DATA: Record<string, number> = {
     "Wangsa Maju": 1
 };
 
-const DEMO_REGION_INFO: Record<string, RegionInfo> = {
-    "Petaling Jaya": {
-        name: "Petaling Jaya",
-        crimeTrend: { change: "12%", direction: "up", period: "Last 7 days" },
-        latestIncident: { title: "House Break-in", time: "2h ago", description: "Reported break-in at SS2 residential area." }
-    },
-    "Shah Alam": {
-        name: "Shah Alam",
-        crimeTrend: { change: "5%", direction: "down", period: "Last 7 days" },
-        latestIncident: { title: "Vandalism", time: "5h ago", description: "Graffiti found on public property in Section 14." }
-    },
-    "Subang Jaya": {
-        name: "Subang Jaya",
-        crimeTrend: { change: "8%", direction: "up", period: "Last 7 days" },
-        latestIncident: { title: "Snatch Theft", time: "1d ago", description: "Pedestrian handbag snatched near LRT station." }
-    }
-};
+function buildRegionInfo(name: string, feedItems: FeedItem[]): RegionInfo {
+    const districtItems = feedItems
+        .filter(item => item.district === name)
+        .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
 
-const getDefaultRegionInfo = (name: string): RegionInfo => ({
-    name,
-    crimeTrend: { change: "2%", direction: "up", period: "Last 7 days" },
-    latestIncident: null
-});
+    return {
+        name,
+        crimeTrend: { change: "–", direction: "up", period: "Last 7 days" }, // TODO: change
+        totalReports: districtItems.length,
+        latestIncidents: districtItems.slice(0, 3).map(item => ({
+            type: item.type ?? "unknown",
+            time: item.createdAt ? formatRelativeTime(item.createdAt) : "",
+            description: item.description ?? "No description",
+        })),
+    };
+}
 
-export default function MapView() {
+interface MapViewProps {
+    highlightDistrict?: string;
+    disableInteraction?: boolean;
+    feedItems?: FeedItem[];
+}
+
+export default function MapView({ highlightDistrict, disableInteraction, feedItems }: MapViewProps) {
     const mapRef = useRef<MapRef>(null);
     const [viewState, setViewState] = useState({ longitude: 101.68, latitude: 3.07, zoom: 10 });
     const [regionData, setRegionData] = useState<GeoJSON.FeatureCollection | null>(null);
     const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
     const [cursor, setCursor] = useState<string>('grab');
+    const [popupIncident, setPopupIncident] = useState<Incident | null>(null);
 
-    const handleMapClick = useCallback((event: any) => {
+    const handleMapClick = useCallback((event: MapMouseEvent) => {
         const feature = event.features && event.features[0];
-        if (feature && feature.properties && feature.properties.name) {
-            setSelectedRegion(feature.properties.name);
+        const name = (feature as any)?.properties?.name;
+        if (typeof name === "string" && name.length) {
+            setSelectedRegion(name);
         } else {
             setSelectedRegion(null);
         }
@@ -88,7 +93,7 @@ export default function MapView() {
     }, []);
 
     useEffect(() => {
-        fetch("/sel-pj-polygons.geojson")
+        fetch("/map.geojson")
             .then((res) => res.json())
             .then((geojson: GeoJSON.FeatureCollection) => {
                 const merged = {
@@ -108,6 +113,33 @@ export default function MapView() {
         // TODO: merge crime counts from backend
     }, []);
 
+    useEffect(() => {
+        if (!highlightDistrict || !regionData) return;
+
+        const feature = regionData.features.find(
+            (f) => f.properties?.name === highlightDistrict
+        );
+        if (!feature) return;
+
+        const coords =
+            feature.geometry.type === "Polygon"
+                ? (feature.geometry as GeoJSON.Polygon).coordinates[0]
+                : feature.geometry.type === "MultiPolygon"
+                    ? (feature.geometry as GeoJSON.MultiPolygon).coordinates[0][0]
+                    : [];
+
+        if (coords.length === 0) return;
+
+        const lngs = coords.map((c) => c[0]);
+        const lats = coords.map((c) => c[1]);
+
+        setViewState({
+            longitude: (Math.min(...lngs) + Math.max(...lngs)) / 2,
+            latitude: (Math.min(...lats) + Math.max(...lats)) / 2,
+            zoom: 8,
+        });
+    }, [highlightDistrict, regionData]);
+
     return (
         <div className="relative w-full h-full">
             <Map
@@ -121,11 +153,11 @@ export default function MapView() {
                 maxBounds={[[SELANGOR_BOUNDS[0], SELANGOR_BOUNDS[1]], [SELANGOR_BOUNDS[2], SELANGOR_BOUNDS[3]]]}
                 minZoom={9}
                 maxZoom={18}
-                interactiveLayerIds={regionData ? ["region-fill"] : undefined}
+                interactiveLayerIds={disableInteraction ? undefined : (regionData ? ["region-fill"] : undefined)}
                 onClick={handleMapClick}
-                cursor={cursor}
-                onMouseEnter={onMouseEnter}
-                onMouseLeave={onMouseLeave}
+                cursor={disableInteraction ? "default" : cursor}
+                onMouseEnter={disableInteraction ? undefined : onMouseEnter}
+                onMouseLeave={disableInteraction ? undefined : onMouseLeave}
             >
                 <NavigationControl position="top-right" />
 
@@ -135,19 +167,21 @@ export default function MapView() {
                             id="region-fill"
                             type="fill"
                             paint={{
-                                "fill-color": [
-                                    "case",
-                                    ["==", ["get", "crimeCount"], null],
-                                    "#1f1f29", // no data yet
-                                    [
-                                        "interpolate", ["linear"], ["get", "crimeCount"],
-                                        0, "#22c55e",
-                                        500, "#eab308",
-                                        1000, "#f97316",
-                                        2000, "#ef4444",
+                                "fill-color": highlightDistrict
+                                    ? "#1f1f29"
+                                    : [
+                                        "case",
+                                        ["==", ["get", "crimeCount"], null],
+                                        "#1f1f29",
+                                        [
+                                            "interpolate", ["linear"], ["get", "crimeCount"],
+                                            0, "#22c55e",
+                                            500, "#eab308",
+                                            1000, "#f97316",
+                                            2000, "#ef4444",
+                                        ],
                                     ],
-                                ],
-                                "fill-opacity": 0.5,
+                                "fill-opacity": highlightDistrict ? 0.3 : 0.5,
                             }}
                         />
 
@@ -176,16 +210,43 @@ export default function MapView() {
                                 "text-halo-width": 2
                             }}
                         />
+
+                        {highlightDistrict && (
+                            <Layer
+                                id="region-highlight"
+                                type="fill"
+                                filter={["==", ["get", "name"], highlightDistrict]}
+                                paint={{
+                                    "fill-color": "#f97316",
+                                    "fill-opacity": 0.6,
+                                }}
+                            />
+                        )}
+
                     </Source>
                 )}
             </Map>
 
             {selectedRegion && (
                 <MapRegionPopup
-                    info={DEMO_REGION_INFO[selectedRegion] || getDefaultRegionInfo(selectedRegion)}
+                    info={buildRegionInfo(selectedRegion, feedItems ?? [])}
                     onClose={() => setSelectedRegion(null)}
+                    onIncidentClick={(inc) => setPopupIncident({
+                        type: inc.type,
+                        location: selectedRegion,
+                        description: inc.description,
+                        time: inc.time,
+                        mediaKey: null,
+                        mediaKeys: [],
+                    })}
                 />
             )}
+
+            <IncidentDetailsPop
+                open={!!popupIncident}
+                onClose={() => setPopupIncident(null)}
+                incident={popupIncident}
+            />
         </div>
     );
 }
