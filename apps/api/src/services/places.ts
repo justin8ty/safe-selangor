@@ -16,13 +16,10 @@ export async function getNearestLandmarkLabel(input: {
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(
-    () => controller.abort(),
-    input.timeoutMs ?? 5000,
-  );
+  const timeout = setTimeout(() => controller.abort(), input.timeoutMs ?? 5000);
 
   try {
-    // Minimal Nearby Search call. We use a small radius for "nearest".
+    // use a small radius for "nearest".
     const url = new URL(
       "https://maps.googleapis.com/maps/api/place/nearbysearch/json",
     );

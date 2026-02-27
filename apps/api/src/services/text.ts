@@ -1,11 +1,13 @@
-export function mergeDescriptionParts(...parts: Array<string | null | undefined>): string | null {
+export function mergeDescriptionParts(
+  ...parts: Array<string | null | undefined>
+): string | null {
   const cleaned = parts
     .map((p) => (typeof p === "string" ? p.trim() : ""))
     .filter((p) => p.length);
 
   if (!cleaned.length) return null;
 
-  // Join with sentence separators; keep it simple and deterministic.
+  // join with sentence separators
   return cleaned
     .map((p) => p.replace(/\s+/g, " "))
     .join(". ")

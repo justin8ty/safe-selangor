@@ -86,7 +86,11 @@ export async function moderateCrimeSceneWithGemini(input: {
         .filter(Boolean)
         .join("\n") ?? "";
 
-    const parsed = JSON.parse(text) as { confidence?: unknown; caption?: unknown };
+    console.log(text);
+    const parsed = JSON.parse(text) as {
+      confidence?: unknown;
+      caption?: unknown;
+    };
 
     return {
       confidence: clampConfidence(parsed.confidence),
