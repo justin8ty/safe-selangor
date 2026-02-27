@@ -8,13 +8,13 @@ export default function Home() {
       orientation="horizontal"
       className="flex-1 overflow-hidden"
     >
-      <ResizablePanel defaultSize="25%">
+      <ResizablePanel defaultSize="35%">
         <Sidebar />
       </ResizablePanel>
 
       <ResizableHandle withHandle />
 
-      <ResizablePanel defaultSize="75%">
+      <ResizablePanel defaultSize="65%">
         <MapView />
       </ResizablePanel>
     </ResizablePanelGroup>
