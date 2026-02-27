@@ -1,6 +1,6 @@
 "use client";
 
-import { X, MapPin, Clock, ImageIcon, ShieldAlert, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, MapPin, Clock, ImageIcon, ShieldAlert, ChevronLeft, ChevronRight, Landmark } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useEffect, useMemo, useState } from "react";
 
@@ -91,7 +91,10 @@ export default function IncidentDetailsPop({ open, onClose, incident }: Incident
                         {incident.landmarkLabel ? (
                             <>
                                 <span className="opacity-50">•</span>
-                                <span>Near {incident.landmarkLabel}</span>
+                                <span className="inline-flex items-center gap-1">
+                                    <Landmark className="w-4 h-4 text-cyan-500" />
+                                    Near {incident.landmarkLabel}
+                                </span>
                             </>
                         ) : null}
                         {/* {incident.coordinates && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, MapPin } from "lucide-react";
+import { Clock, MapPin, Landmark } from "lucide-react";
 import { formatRelativeTime } from "@/lib/utils";
 
 interface IncidentCardProps {
@@ -63,7 +63,8 @@ export default function IncidentCard({
             )}
 
             {landmarkLabel && (
-                <span className="text-xs text-muted-foreground mt-1 block line-clamp-1">
+                <span className="text-xs text-muted-foreground mt-1 flex items-center gap-1 line-clamp-1">
+                    <Landmark size={12} />
                     Near {landmarkLabel}
                 </span>
             )}
