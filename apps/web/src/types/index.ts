@@ -36,6 +36,7 @@ export interface FeedItem {
     createdAt: string | null;
     mediaKey: string | null;
     mediaKeys?: string[];
+    aiConfidence?: number | null;
     likes: number | null;
     views: number | null;
     landmarkLabel?: string | null;

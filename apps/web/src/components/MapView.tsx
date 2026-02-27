@@ -333,6 +333,7 @@ export default function MapView({ highlightDistrict, disableInteraction, feedIte
                             time: new Date(inc.time).toLocaleString(),
                             mediaKey: inc.mediaKey,
                             landmarkLabel: null,
+                            aiConfidence: null,
                         })}
                     />
                 )}

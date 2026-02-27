@@ -9,6 +9,7 @@ export type FeedItem = {
   description: string | null;
   date: string | null;
   createdAt: string | null;
+  aiConfidence: number | null;
   mediaKeys: string[];
   mediaKey: string | null;
   likes: number | null;
@@ -21,7 +22,7 @@ export async function getReportCard(
   const { data: report, error: reportErr } = await supabase
     .from("reports")
     .select(
-      "id,state,district,landmark_label,type,description,date,created_at,status",
+      "id,state,district,landmark_label,type,description,date,created_at,status,ai_confidence",
     )
     .eq("id", reportId)
     .maybeSingle();
@@ -61,6 +62,7 @@ export async function getReportCard(
     description: (report.description ?? null) as string | null,
     date: (report.date ?? null) as string | null,
     createdAt: (report.created_at ?? null) as string | null,
+    aiConfidence: (report.ai_confidence ?? null) as number | null,
     mediaKeys,
     mediaKey: mediaKeys[0] ?? null,
     likes: (metrics?.likes ?? null) as number | null,
@@ -71,7 +73,9 @@ export async function getReportCard(
 export async function getApprovedFeed(limit = 50): Promise<FeedItem[]> {
   const { data: reports, error: reportsErr } = await supabase
     .from("reports")
-    .select("id,state,district,landmark_label,type,description,date,created_at")
+    .select(
+      "id,state,district,landmark_label,type,description,date,created_at,ai_confidence",
+    )
     .eq("status", "approved")
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -128,6 +132,7 @@ export async function getApprovedFeed(limit = 50): Promise<FeedItem[]> {
       description: (r.description ?? null) as string | null,
       date: (r.date ?? null) as string | null,
       createdAt: (r.created_at ?? null) as string | null,
+      aiConfidence: (r.ai_confidence ?? null) as number | null,
       mediaKeys,
       mediaKey: mediaKeys[0] ?? null,
       likes: met?.likes ?? null,
