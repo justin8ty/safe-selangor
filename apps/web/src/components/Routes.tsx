@@ -35,7 +35,11 @@ export default function Routes({ children }: { children: React.ReactNode }) {
         }
     }, [user, isLoading, pathname]);
 
-    if (isLoading) return null;
+    if (isLoading) return (
+        <div className="flex-1 flex items-center justify-center">
+            <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+        </div>
+    );
 
     return <>{children}</>;
 }

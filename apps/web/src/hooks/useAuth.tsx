@@ -27,11 +27,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     .select("role")
                     .eq("id", data.session.user.id)
                     .single()
-                    .then(({ data: profile }) => {
+                    .then(({ data: profile, error }) => {
                         setUser({
                             id: data.session!.user.id,
                             email: data.session!.user.email ?? "",
-                            role: profile?.role ?? null,
+                            role: error ? null : (profile?.role ?? null),
                         });
                         setIsLoading(false);
                     });
