@@ -9,12 +9,13 @@ interface IncidentCardProps {
     district: string | null;
     state: string | null;
     time: string | null;
+    landmarkLabel?: string | null;
     isSelected?: boolean;
     onClick?: () => void;
 }
 
 export default function IncidentCard({
-    type, description, district, state, time, isSelected, onClick
+    type, description, district, state, time, landmarkLabel, isSelected, onClick
 }: IncidentCardProps) {
     return (
         <div
@@ -57,7 +58,13 @@ export default function IncidentCard({
             {district && (
                 <span className="text-xs text-muted-foreground flex items-center gap-1 mt-2">
                     <MapPin size={12} />
-                    {district}
+                    {district}{state ? `, ${state}` : ""}
+                </span>
+            )}
+
+            {landmarkLabel && (
+                <span className="text-xs text-muted-foreground mt-1 block line-clamp-1">
+                    Near {landmarkLabel}
                 </span>
             )}
         </div>

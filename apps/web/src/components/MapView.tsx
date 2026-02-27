@@ -238,6 +238,7 @@ export default function MapView({ highlightDistrict, disableInteraction, feedIte
                         time: inc.time,
                         mediaKey: null,
                         mediaKeys: [],
+                        landmarkLabel: null,
                     })}
                 />
             )}

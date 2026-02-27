@@ -11,6 +11,7 @@ export interface Incident {
     time: string;
     mediaKey: string | null;
     mediaKeys?: string[];
+    landmarkLabel?: string | null;
 }
 
 interface IncidentDetailsPopProps {
@@ -87,6 +88,12 @@ export default function IncidentDetailsPop({ open, onClose, incident }: Incident
                     <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mb-3">
                         <MapPin className="w-4 h-4 text-cyan-500" />
                         <span>{incident.location}</span>
+                        {incident.landmarkLabel ? (
+                            <>
+                                <span className="opacity-50">•</span>
+                                <span>Near {incident.landmarkLabel}</span>
+                            </>
+                        ) : null}
                         {/* {incident.coordinates && (
                             <>
                                 <span className="opacity-50">•</span>

@@ -46,6 +46,7 @@ export default function Sidebar({ feedItems }: SidebarProps) {
                         description={incident.description}
                         district={incident.district}
                         state={incident.state}
+                        landmarkLabel={incident.landmarkLabel ?? null}
                         time={incident.createdAt}
                         onClick={() => setSelectedIncident({
                             type: incident.type || "unknown",
@@ -54,6 +55,7 @@ export default function Sidebar({ feedItems }: SidebarProps) {
                             time: incident.createdAt ? new Date(incident.createdAt).toLocaleString() : "",
                             mediaKey: incident.mediaKey,
                             mediaKeys: incident.mediaKeys ?? (incident.mediaKey ? [incident.mediaKey] : []),
+                            landmarkLabel: incident.landmarkLabel ?? null,
                         })}
 
                     />
