@@ -39,6 +39,7 @@ function buildRegionInfo(name: string, feedItems: FeedItem[]): RegionInfo {
     return {
         name,
         crimeTrend: { change: "–", direction: "up", period: "Last 7 days" }, // TODO: change
+        totalReports: districtItems.length,
         latestIncidents: districtItems.slice(0, 3).map(item => ({
             type: item.type ?? "unknown",
             time: item.createdAt ? formatRelativeTime(item.createdAt) : "",
