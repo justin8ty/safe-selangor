@@ -28,23 +28,23 @@ function getMediaUrl(storageKey: string): string {
 }
 
 export default function IncidentDetailsPop({ open, onClose, incident }: IncidentDetailsPopProps) {
-    if (!open || !incident) return null;
+    const [activeIndex, setActiveIndex] = useState(0);
 
     const mediaKeys = useMemo(() => {
-        if (incident.mediaKeys?.length) return incident.mediaKeys;
-        if (incident.mediaKey) return [incident.mediaKey];
+        if (incident?.mediaKeys?.length) return incident.mediaKeys;
+        if (incident?.mediaKey) return [incident.mediaKey];
         return [];
-    }, [incident.mediaKey, incident.mediaKeys]);
-
-    const [activeIndex, setActiveIndex] = useState(0);
+    }, [incident?.mediaKey, incident?.mediaKeys]);
 
     useEffect(() => {
         setActiveIndex(0);
-    }, [incident]);
+    }, [open, incident?.mediaKey, incident?.mediaKeys]);
 
     const canPrev = activeIndex > 0;
     const canNext = activeIndex < mediaKeys.length - 1;
     const activeKey = mediaKeys[activeIndex] ?? null;
+
+    if (!open || !incident) return null;
 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
