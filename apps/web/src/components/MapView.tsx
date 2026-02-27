@@ -5,7 +5,6 @@ import Map, { NavigationControl, Source, Layer, MapRef, type MapMouseEvent } fro
 import "mapbox-gl/dist/mapbox-gl.css";
 import MapRegionPopup, { RegionInfo } from "./MapRegionPopup";
 import { FeedItem } from "@/types";
-import { formatRelativeTime } from "@/lib/utils";
 import IncidentDetailsPop, { Incident } from "./IncidentDetailsPop";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -21,7 +20,7 @@ const DEMO_CRIME_DATA: Record<string, number> = {
     "Sepang": 0,
     "Putrajaya": 210,
     "Gombak": 950,
-    "Ampang": 870,
+    "Ampang Jaya": 870,
     "Cheras": 790,
     "Kajang": 640,
     "Serdang": 1000,
@@ -40,10 +39,11 @@ function buildRegionInfo(name: string, feedItems: FeedItem[]): RegionInfo {
         name,
         crimeTrend: { change: "–", direction: "up", period: "Last 7 days" }, // TODO: change
         totalReports: districtItems.length,
-        latestIncidents: districtItems.slice(0, 3).map(item => ({
+        latestIncidents: districtItems.slice(0, 2).map(item => ({
             type: item.type ?? "unknown",
-            time: item.createdAt ? formatRelativeTime(item.createdAt) : "",
+            time: item.createdAt ?? "",
             description: item.description ?? "No description",
+            mediaKey: item.mediaKey ?? null
         })),
     };
 }
@@ -235,8 +235,8 @@ export default function MapView({ highlightDistrict, disableInteraction, feedIte
                         type: inc.type,
                         location: selectedRegion,
                         description: inc.description,
-                        time: inc.time,
-                        mediaKey: null,
+                        time: new Date(inc.time).toLocaleString(),
+                        mediaKey: inc.mediaKey,
                     })}
                 />
             )}

@@ -1,4 +1,5 @@
 import { X, TrendingUp, TrendingDown, Clock, ChevronRight } from "lucide-react";
+import { formatRelativeTime } from "@/lib/utils";
 
 export interface RegionInfo {
     name: string;
@@ -12,6 +13,7 @@ export interface RegionInfo {
         type: string;
         time: string;
         description: string;
+        mediaKey: string | null;
     }[];
 }
 
@@ -64,7 +66,7 @@ export default function MapRegionPopup({ info, onClose, onIncidentClick }: MapRe
                             {info.latestIncidents.map((incident, i) => (
                                 <div
                                     key={i}
-                                    className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded-lg p-2 -mx-2 transition-colors"
+                                    className="flex items-center gap-2 cursor-pointer hover:bg-muted rounded-lg p-2 -mx-2 transition-colors"
                                     onClick={() => onIncidentClick?.(incident)}
                                 >
                                     <div className="flex-1 flex flex-col gap-1 min-w-0">
@@ -85,7 +87,7 @@ export default function MapRegionPopup({ info, onClose, onIncidentClick }: MapRe
                                             </span>
                                             <span className="text-xs text-muted-foreground flex items-center gap-1">
                                                 <Clock size={10} />
-                                                {incident.time}
+                                                {formatRelativeTime(incident.time)}
                                             </span>
                                         </div>
                                         <p className="text-xs text-muted-foreground line-clamp-1">{incident.description}</p>
