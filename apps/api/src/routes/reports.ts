@@ -7,6 +7,7 @@ import { supabase } from "../services/supabase.ts";
 import { runReportPipeline } from "../pipeline/runReportPipeline.ts";
 import {
   listDistrictNames,
+  getStateForDistrict,
   matchDistrictFromLatLng,
 } from "../services/districts.ts";
 import { mergeDescriptionParts } from "../services/text.ts";
@@ -132,14 +133,20 @@ export async function reportsRoutes(app: FastifyInstance): Promise<void> {
         parsed.data.details ?? null,
       );
 
+      const state = await getStateForDistrict(parsed.data.district);
+
+      const update: Record<string, unknown> = {
+        type: parsed.data.type,
+        district: parsed.data.district,
+        description: mergedDetails,
+        status: "needs_moderator",
+      };
+
+      if (state) update.state = state;
+
       const { error: updErr } = await supabase
         .from("reports")
-        .update({
-          type: parsed.data.type,
-          district: parsed.data.district,
-          description: mergedDetails,
-          status: "needs_moderator",
-        })
+        .update(update)
         .eq("id", parsed.data.reportId);
 
       if (updErr) {

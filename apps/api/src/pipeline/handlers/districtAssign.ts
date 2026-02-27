@@ -32,12 +32,19 @@ export async function districtAssignHandler(
     return ctx;
   }
 
+  const update: Record<string, unknown> = { district: match.district };
+  if (match.state) update.state = match.state;
+
   const { error } = await supabase
     .from("reports")
-    .update({ district: match.district, state: match.state })
+    .update(update)
     .eq("id", ctx.reportId);
 
   if (error) throw error;
 
-  return { ...ctx, district: match.district, state: match.state };
+  return {
+    ...ctx,
+    district: match.district,
+    ...(match.state ? { state: match.state } : {}),
+  };
 }
