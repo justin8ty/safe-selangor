@@ -28,6 +28,11 @@ export default function IncidentDetailsPanel({ incident, onApprove, onReject }: 
         );
     }
 
+    const aiConfidence = Math.max(
+        0,
+        Math.min(100, incident.report?.ai_confidence ?? 0),
+    );
+
     return (
         <div className="flex flex-col h-full">
             {/* HEADER */}
@@ -122,17 +127,17 @@ export default function IncidentDetailsPanel({ incident, onApprove, onReject }: 
                         <div className="flex items-center gap-3">
                             <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                                 <div
-                                    className={`h-full rounded-full ${(incident.report?.ai_confidence ?? 0) > 0.7
+                                    className={`h-full rounded-full ${aiConfidence >= 70
                                         ? "bg-green-500"
-                                        : (incident.report?.ai_confidence ?? 0) > 0.4
+                                        : aiConfidence >= 40
                                             ? "bg-amber-500"
                                             : "bg-red-500"
                                         }`}
-                                    style={{ width: `${Math.round((incident.report?.ai_confidence ?? 0) * 100)}%` }}
+                                    style={{ width: `${aiConfidence}%` }}
                                 />
                             </div>
                             <span className="text-sm font-bold w-12 text-right">
-                                {Math.round((incident.report?.ai_confidence ?? 0) * 100)}%
+                                {aiConfidence}
                             </span>
                         </div>
                     </div>

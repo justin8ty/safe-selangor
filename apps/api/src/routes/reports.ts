@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 
 import { requireAuth } from "../auth/requireAuth.ts";
+import { env } from "../config/env.ts";
 import { supabase } from "../services/supabase.ts";
 import { runReportPipeline } from "../pipeline/runReportPipeline.ts";
 import {
@@ -19,7 +20,10 @@ const submitBodySchema = z.object({
   reportId: z.string().min(1),
   type: z.enum(["violent", "property"]),
   district: z.string().min(1),
-  storageKeys: z.array(z.string().min(1)).min(1),
+  storageKeys: z
+    .array(z.string().min(1))
+    .min(1)
+    .max(env.MAX_IMAGES_PER_REPORT),
   details: z.string().optional(),
 });
 
