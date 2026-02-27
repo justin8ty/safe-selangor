@@ -238,25 +238,12 @@ export default function MapView({ highlightDistrict, disableInteraction, feedIte
                             description: inc.description,
                             time: new Date(inc.time).toLocaleString(),
                             mediaKey: inc.mediaKey,
+                            landmarkLabel: null,
                         })}
                     />
                 )}
             </div>
-            {selectedRegion && (
-                <MapRegionPopup
-                    info={buildRegionInfo(selectedRegion, feedItems ?? [])}
-                    onClose={() => setSelectedRegion(null)}
-                    onIncidentClick={(inc) => setPopupIncident({
-                        type: inc.type,
-                        location: selectedRegion,
-                        description: inc.description,
-                        time: inc.time,
-                        mediaKey: null,
-                        mediaKeys: [],
-                        landmarkLabel: null,
-                    })}
-                />
-            )}
+
 
             <IncidentDetailsPop
                 open={!!popupIncident}
