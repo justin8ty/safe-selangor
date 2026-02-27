@@ -1,7 +1,7 @@
-// IncidentCard.tsx
 "use client";
 
-import { Clock, MapPin, Calendar } from "lucide-react";
+import { Clock, MapPin } from "lucide-react";
+import { formatRelativeTime } from "@/lib/utils";
 
 interface IncidentCardProps {
     type: string | null;
@@ -11,27 +11,6 @@ interface IncidentCardProps {
     time: string | null;
     isSelected?: boolean;
     onClick?: () => void;
-}
-
-function formatRelativeTime(dateStr: string): string {
-    const now = Date.now();
-    const date = new Date(dateStr).getTime();
-    const diff = now - date;
-
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 1) return "Just now";
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 7) return `${days}d ago`;
-
-    return new Date(dateStr).toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-    });
 }
 
 export default function IncidentCard({
@@ -73,7 +52,7 @@ export default function IncidentCard({
                 )}
             </div>
 
-            <p className="text-sm font-normal mb-1 line-clamp-1">{description}</p>
+            <p className="text-sm font-normal mb-1 line-clamp-1">{description ?? "No description provided."}</p>
 
             {district && (
                 <span className="text-xs text-muted-foreground flex items-center gap-1 mt-2">

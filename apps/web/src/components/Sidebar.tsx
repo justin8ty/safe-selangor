@@ -4,22 +4,18 @@ import { Info } from "lucide-react";
 import { useState, useEffect } from "react";
 import IncidentDetailsPop, { Incident } from "./IncidentDetailsPop";
 import IncidentCard from "./IncidentCard";
-import { useQuery } from "@tanstack/react-query";
-import { getFeed } from "@/lib/services";
-import { FeedItem } from "@/types";
 import { supabase } from "@/lib/supabase";
+import { FeedItem } from "@/types";
 
 const crimeIndex = 52000;
 
-export default function Sidebar() {
-    const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
-    const { data, isLoading } = useQuery({
-        queryKey: ["feed"],
-        queryFn: getFeed,
-    });
+interface SidebarProps {
+    feedItems: FeedItem[];
+}
 
-    const incidents: FeedItem[] = data?.items ?? [];
-    console.log("Feed data:", data);
+export default function Sidebar({ feedItems }: SidebarProps) {
+    const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
+    const incidents = feedItems;
 
     useEffect(() => {
         supabase.auth.getSession().then(({ data }) => {
@@ -51,6 +47,14 @@ export default function Sidebar() {
                         district={incident.district}
                         state={incident.state}
                         time={incident.createdAt}
+                        onClick={() => setSelectedIncident({
+                            type: incident.type || "unknown",
+                            location: `${incident.district ?? "Unknown"}${incident.state ? `, ${incident.state}` : ""}`,
+                            description: incident.description || "No description provided.",
+                            time: incident.createdAt ? new Date(incident.createdAt).toLocaleString() : "",
+                            mediaKey: incident.mediaKey,
+                        })}
+
                     />
                 ))}
             </div>

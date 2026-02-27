@@ -38,9 +38,15 @@ export default function IncidentDetailsPanel({ incident, onApprove, onReject }: 
                     </span>
                     <span className={`text-xs font-semibold px-2 py-1 rounded flex items-center gap-1.5 uppercase ${incident.report?.type === "violent"
                         ? "bg-red-500/15 text-red-500"
-                        : "bg-amber-500/15 text-amber-500"
+                        : incident.report?.type === "property"
+                            ? "bg-amber-500/15 text-amber-500"
+                            : "bg-muted text-muted-foreground"
                         }`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${incident.report?.type === "violent" ? "bg-red-500" : "bg-amber-500"
+                        <div className={`w-1.5 h-1.5 rounded-full ${incident.report?.type === "violent"
+                            ? "bg-red-500"
+                            : incident.report?.type === "property"
+                                ? "bg-amber-500"
+                                : "bg-muted-foreground"
                             }`} />
                         {incident.report?.type ?? "Unknown"}
                     </span>

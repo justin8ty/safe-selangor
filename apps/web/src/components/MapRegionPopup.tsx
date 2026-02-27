@@ -1,4 +1,4 @@
-import { X, TrendingUp, TrendingDown, Clock } from "lucide-react";
+import { X, TrendingUp, TrendingDown, Clock, ChevronRight } from "lucide-react";
 
 export interface RegionInfo {
     name: string;
@@ -7,19 +7,20 @@ export interface RegionInfo {
         direction: "up" | "down";
         period: string;
     };
-    latestIncident: {
-        title: string;
+    latestIncidents: {
+        type: string;
         time: string;
         description: string;
-    } | null;
+    }[];
 }
 
 interface MapRegionPopupProps {
     info: RegionInfo;
     onClose: () => void;
+    onIncidentClick: (incident: RegionInfo["latestIncidents"][0]) => void;
 }
 
-export default function MapRegionPopup({ info, onClose }: MapRegionPopupProps) {
+export default function MapRegionPopup({ info, onClose, onIncidentClick }: MapRegionPopupProps) {
     return (
         <div className="absolute top-4 left-4 z-10 w-80 bg-background/95 backdrop-blur-md border border-border shadow-xl rounded-xl overflow-hidden animate-in fade-in slide-in-from-left-4 duration-300">
             <div className="p-4 border-b border-border bg-muted/20 flex items-center justify-between">
@@ -48,25 +49,45 @@ export default function MapRegionPopup({ info, onClose }: MapRegionPopupProps) {
 
                 <div className="border-t border-border pt-4">
                     <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground block mb-2">
-                        Latest Incident
+                        Latest Incidents ({info.latestIncidents.length})
                     </span>
-                    {info.latestIncident ? (
-                        <div className="flex flex-col gap-1">
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm font-semibold text-foreground">
-                                    {info.latestIncident.title}
-                                </span>
-                                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                    <Clock size={12} />
-                                    {info.latestIncident.time}
-                                </span>
-                            </div>
-                            <p className="text-xs text-muted-foreground line-clamp-2">
-                                {info.latestIncident.description}
-                            </p>
+                    {info.latestIncidents.length > 0 ? (
+                        <div className="flex flex-col gap-3">
+                            {info.latestIncidents.map((incident, i) => (
+                                <div
+                                    key={i}
+                                    className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded-lg p-2 -mx-2 transition-colors"
+                                    onClick={() => onIncidentClick?.(incident)}
+                                >
+                                    <div className="flex-1 flex flex-col gap-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <span className={`text-xs font-semibold px-2 py-1 rounded flex items-center gap-1.5 uppercase ${incident.type === "violent"
+                                                ? "bg-red-500/15 text-red-500"
+                                                : incident.type === "property"
+                                                    ? "bg-amber-500/15 text-amber-500"
+                                                    : "bg-muted text-muted-foreground"
+                                                }`}>
+                                                <div className={`w-1.5 h-1.5 rounded-full ${incident.type === "violent"
+                                                    ? "bg-red-500"
+                                                    : incident.type === "property"
+                                                        ? "bg-amber-500"
+                                                        : "bg-muted-foreground"
+                                                    }`} />
+                                                {incident.type ?? "Unknown"}
+                                            </span>
+                                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                                <Clock size={10} />
+                                                {incident.time}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground line-clamp-1">{incident.description}</p>
+                                    </div>
+                                    <ChevronRight size={14} className="text-muted-foreground shrink-0" />
+                                </div>
+                            ))}
                         </div>
                     ) : (
-                        <span className="text-sm text-muted-foreground italic">No recent incidents reported.</span>
+                        <span className="text-xs text-muted-foreground italic">No recent incidents reported.</span>
                     )}
                 </div>
             </div>

@@ -4,6 +4,9 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Map, { NavigationControl, Source, Layer, MapRef, type MapMouseEvent } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import MapRegionPopup, { RegionInfo } from "./MapRegionPopup";
+import { FeedItem } from "@/types";
+import { formatRelativeTime } from "@/lib/utils";
+import IncidentDetailsPop, { Incident } from "./IncidentDetailsPop";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 const SELANGOR_BOUNDS = [101.3, 2.85, 102.0, 3.35];
@@ -28,41 +31,35 @@ const DEMO_CRIME_DATA: Record<string, number> = {
     "Wangsa Maju": 1
 };
 
-const DEMO_REGION_INFO: Record<string, RegionInfo> = {
-    "Petaling Jaya": {
-        name: "Petaling Jaya",
-        crimeTrend: { change: "12%", direction: "up", period: "Last 7 days" },
-        latestIncident: { title: "House Break-in", time: "2h ago", description: "Reported break-in at SS2 residential area." }
-    },
-    "Shah Alam": {
-        name: "Shah Alam",
-        crimeTrend: { change: "5%", direction: "down", period: "Last 7 days" },
-        latestIncident: { title: "Vandalism", time: "5h ago", description: "Graffiti found on public property in Section 14." }
-    },
-    "Subang Jaya": {
-        name: "Subang Jaya",
-        crimeTrend: { change: "8%", direction: "up", period: "Last 7 days" },
-        latestIncident: { title: "Snatch Theft", time: "1d ago", description: "Pedestrian handbag snatched near LRT station." }
-    }
-};
+function buildRegionInfo(name: string, feedItems: FeedItem[]): RegionInfo {
+    const districtItems = feedItems
+        .filter(item => item.district === name)
+        .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
 
-const getDefaultRegionInfo = (name: string): RegionInfo => ({
-    name,
-    crimeTrend: { change: "2%", direction: "up", period: "Last 7 days" },
-    latestIncident: null
-});
+    return {
+        name,
+        crimeTrend: { change: "–", direction: "up", period: "Last 7 days" }, // TODO: change
+        latestIncidents: districtItems.slice(0, 3).map(item => ({
+            type: item.type ?? "unknown",
+            time: item.createdAt ? formatRelativeTime(item.createdAt) : "",
+            description: item.description ?? "No description",
+        })),
+    };
+}
 
 interface MapViewProps {
     highlightDistrict?: string;
     disableInteraction?: boolean;
+    feedItems?: FeedItem[];
 }
 
-export default function MapView({ highlightDistrict, disableInteraction }: MapViewProps) {
+export default function MapView({ highlightDistrict, disableInteraction, feedItems }: MapViewProps) {
     const mapRef = useRef<MapRef>(null);
     const [viewState, setViewState] = useState({ longitude: 101.68, latitude: 3.07, zoom: 10 });
     const [regionData, setRegionData] = useState<GeoJSON.FeatureCollection | null>(null);
     const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
     const [cursor, setCursor] = useState<string>('grab');
+    const [popupIncident, setPopupIncident] = useState<Incident | null>(null);
 
     const handleMapClick = useCallback((event: MapMouseEvent) => {
         const feature = event.features && event.features[0];
@@ -141,8 +138,6 @@ export default function MapView({ highlightDistrict, disableInteraction }: MapVi
             zoom: 8,
         });
     }, [highlightDistrict, regionData]);
-
-
 
     return (
         <div className="relative w-full h-full">
@@ -233,10 +228,23 @@ export default function MapView({ highlightDistrict, disableInteraction }: MapVi
 
             {selectedRegion && (
                 <MapRegionPopup
-                    info={DEMO_REGION_INFO[selectedRegion] || getDefaultRegionInfo(selectedRegion)}
+                    info={buildRegionInfo(selectedRegion, feedItems ?? [])}
                     onClose={() => setSelectedRegion(null)}
+                    onIncidentClick={(inc) => setPopupIncident({
+                        type: inc.type,
+                        location: selectedRegion,
+                        description: inc.description,
+                        time: inc.time,
+                        mediaKey: null,
+                    })}
                 />
             )}
+
+            <IncidentDetailsPop
+                open={!!popupIncident}
+                onClose={() => setPopupIncident(null)}
+                incident={popupIncident}
+            />
         </div>
     );
 }
