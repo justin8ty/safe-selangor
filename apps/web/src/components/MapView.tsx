@@ -141,111 +141,113 @@ export default function MapView({ highlightDistrict, disableInteraction, feedIte
     }, [highlightDistrict, regionData]);
 
     return (
-        <div className="relative w-full h-full">
-            <Map
-                ref={mapRef}
-                onLoad={handleMapLoad}
-                {...viewState}
-                onMove={(e) => setViewState(e.viewState)}
-                mapboxAccessToken={MAPBOX_TOKEN}
-                mapStyle="mapbox://styles/mapbox/dark-v11"
-                style={{ width: "100%", height: "100%" }}
-                maxBounds={[[SELANGOR_BOUNDS[0], SELANGOR_BOUNDS[1]], [SELANGOR_BOUNDS[2], SELANGOR_BOUNDS[3]]]}
-                minZoom={9}
-                maxZoom={18}
-                interactiveLayerIds={disableInteraction ? undefined : (regionData ? ["region-fill"] : undefined)}
-                onClick={handleMapClick}
-                cursor={disableInteraction ? "default" : cursor}
-                onMouseEnter={disableInteraction ? undefined : onMouseEnter}
-                onMouseLeave={disableInteraction ? undefined : onMouseLeave}
-            >
-                <NavigationControl position="top-right" />
+        <>
+            <div className="relative w-full h-full">
+                <Map
+                    ref={mapRef}
+                    onLoad={handleMapLoad}
+                    {...viewState}
+                    onMove={(e) => setViewState(e.viewState)}
+                    mapboxAccessToken={MAPBOX_TOKEN}
+                    mapStyle="mapbox://styles/mapbox/dark-v11"
+                    style={{ width: "100%", height: "100%" }}
+                    maxBounds={[[SELANGOR_BOUNDS[0], SELANGOR_BOUNDS[1]], [SELANGOR_BOUNDS[2], SELANGOR_BOUNDS[3]]]}
+                    minZoom={9}
+                    maxZoom={18}
+                    interactiveLayerIds={disableInteraction ? undefined : (regionData ? ["region-fill"] : undefined)}
+                    onClick={handleMapClick}
+                    cursor={disableInteraction ? "default" : cursor}
+                    onMouseEnter={disableInteraction ? undefined : onMouseEnter}
+                    onMouseLeave={disableInteraction ? undefined : onMouseLeave}
+                >
+                    <NavigationControl position="top-right" />
 
-                {regionData && (
-                    <Source id="region-zones" type="geojson" data={regionData}>
-                        <Layer
-                            id="region-fill"
-                            type="fill"
-                            paint={{
-                                "fill-color": highlightDistrict
-                                    ? "#1f1f29"
-                                    : [
-                                        "case",
-                                        ["==", ["get", "crimeCount"], null],
-                                        "#1f1f29",
-                                        [
-                                            "interpolate", ["linear"], ["get", "crimeCount"],
-                                            0, "#22c55e",
-                                            500, "#eab308",
-                                            1000, "#f97316",
-                                            2000, "#ef4444",
-                                        ],
-                                    ],
-                                "fill-opacity": highlightDistrict ? 0.3 : 0.5,
-                            }}
-                        />
-
-                        <Layer
-                            id="region-outline"
-                            type="line"
-                            paint={{
-                                "line-color": "#ffffff",
-                                "line-width": 1,
-                                "line-opacity": 0.4,
-                            }}
-                        />
-
-                        <Layer
-                            id="region-labels"
-                            type="symbol"
-                            layout={{
-                                "text-field": ["get", "name"],
-                                "text-size": 12,
-                                "text-anchor": "center",
-                                "text-justify": "center"
-                            }}
-                            paint={{
-                                "text-color": "#ffffff",
-                                "text-halo-color": "#000000",
-                                "text-halo-width": 2
-                            }}
-                        />
-
-                        {highlightDistrict && (
+                    {regionData && (
+                        <Source id="region-zones" type="geojson" data={regionData}>
                             <Layer
-                                id="region-highlight"
+                                id="region-fill"
                                 type="fill"
-                                filter={["==", ["get", "name"], highlightDistrict]}
                                 paint={{
-                                    "fill-color": "#f97316",
-                                    "fill-opacity": 0.6,
+                                    "fill-color": highlightDistrict
+                                        ? "#1f1f29"
+                                        : [
+                                            "case",
+                                            ["==", ["get", "crimeCount"], null],
+                                            "#1f1f29",
+                                            [
+                                                "interpolate", ["linear"], ["get", "crimeCount"],
+                                                0, "#22c55e",
+                                                500, "#eab308",
+                                                1000, "#f97316",
+                                                2000, "#ef4444",
+                                            ],
+                                        ],
+                                    "fill-opacity": highlightDistrict ? 0.3 : 0.5,
                                 }}
                             />
-                        )}
 
-                    </Source>
+                            <Layer
+                                id="region-outline"
+                                type="line"
+                                paint={{
+                                    "line-color": "#ffffff",
+                                    "line-width": 1,
+                                    "line-opacity": 0.4,
+                                }}
+                            />
+
+                            <Layer
+                                id="region-labels"
+                                type="symbol"
+                                layout={{
+                                    "text-field": ["get", "name"],
+                                    "text-size": 12,
+                                    "text-anchor": "center",
+                                    "text-justify": "center"
+                                }}
+                                paint={{
+                                    "text-color": "#ffffff",
+                                    "text-halo-color": "#000000",
+                                    "text-halo-width": 2
+                                }}
+                            />
+
+                            {highlightDistrict && (
+                                <Layer
+                                    id="region-highlight"
+                                    type="fill"
+                                    filter={["==", ["get", "name"], highlightDistrict]}
+                                    paint={{
+                                        "fill-color": "#f97316",
+                                        "fill-opacity": 0.6,
+                                    }}
+                                />
+                            )}
+
+                        </Source>
+                    )}
+                </Map>
+
+                {selectedRegion && (
+                    <MapRegionPopup
+                        info={buildRegionInfo(selectedRegion, feedItems ?? [])}
+                        onClose={() => setSelectedRegion(null)}
+                        onIncidentClick={(inc) => setPopupIncident({
+                            type: inc.type,
+                            location: selectedRegion,
+                            description: inc.description,
+                            time: new Date(inc.time).toLocaleString(),
+                            mediaKey: inc.mediaKey,
+                        })}
+                    />
                 )}
-            </Map>
-
-            {selectedRegion && (
-                <MapRegionPopup
-                    info={buildRegionInfo(selectedRegion, feedItems ?? [])}
-                    onClose={() => setSelectedRegion(null)}
-                    onIncidentClick={(inc) => setPopupIncident({
-                        type: inc.type,
-                        location: selectedRegion,
-                        description: inc.description,
-                        time: new Date(inc.time).toLocaleString(),
-                        mediaKey: inc.mediaKey,
-                    })}
-                />
-            )}
+            </div>
 
             <IncidentDetailsPop
                 open={!!popupIncident}
                 onClose={() => setPopupIncident(null)}
                 incident={popupIncident}
             />
-        </div>
+        </>
     );
 }
