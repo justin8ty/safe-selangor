@@ -1,14 +1,13 @@
 "use client";
 
-import { Info, Clock, ExternalLink } from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
+import { Info } from "lucide-react";
+import { useState, useEffect } from "react";
 import IncidentDetailsPop, { Incident } from "./IncidentDetailsPop";
+import IncidentCard from "./IncidentCard";
 import { useQuery } from "@tanstack/react-query";
 import { getFeed } from "@/lib/services";
 import { FeedItem } from "@/types";
 import { supabase } from "@/lib/supabase";
-import { useEffect } from "react";
 
 const crimeIndex = 52000;
 
@@ -43,36 +42,16 @@ export default function Sidebar() {
                 </p>
             </div>
 
-            <div className="flex-1 flex flex-col gap-3">
+            <div className="flex-1 flex flex-col gap-3 overflow-y-auto">
                 {incidents.map((incident) => (
-                    <div
-                        // TODO: onclick
+                    <IncidentCard
                         key={incident.reportId}
-                        className="rounded-lg border border-border p-4 flex flex-col gap-2 cursor-pointer hover:bg-muted/50 transition-colors"
-                    >
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                    {incident.type}
-                                </span>
-                            </div>
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Clock size={12} />
-                                {incident.createdAt ? new Date(incident.createdAt).toLocaleDateString() : ""}
-                            </span>
-                        </div>
-                        <p className="text-sm text-foreground line-clamp-1">{incident.description}</p>
-                        <span className="text-xs text-muted-foreground self-end">
-                            {incident.district}, {incident.state}
-                        </span>
-                        {/* <Link
-                            href={incident.sourceUrl}
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-xs text-primary self-end hover:underline flex items-center gap-1"
-                        >
-                            {incident.source} <ExternalLink size={12} />
-                        </Link> */}
-                    </div>
+                        type={incident.type}
+                        description={incident.description}
+                        district={incident.district}
+                        state={incident.state}
+                        time={incident.createdAt}
+                    />
                 ))}
             </div>
 

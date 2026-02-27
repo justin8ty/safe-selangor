@@ -52,7 +52,12 @@ const getDefaultRegionInfo = (name: string): RegionInfo => ({
     latestIncident: null
 });
 
-export default function MapView() {
+interface MapViewProps {
+    highlightDistrict?: string;
+    disableInteraction?: boolean;
+}
+
+export default function MapView({ highlightDistrict, disableInteraction }: MapViewProps) {
     const mapRef = useRef<MapRef>(null);
     const [viewState, setViewState] = useState({ longitude: 101.68, latitude: 3.07, zoom: 10 });
     const [regionData, setRegionData] = useState<GeoJSON.FeatureCollection | null>(null);
@@ -110,6 +115,35 @@ export default function MapView() {
         // TODO: merge crime counts from backend
     }, []);
 
+    useEffect(() => {
+        if (!highlightDistrict || !regionData) return;
+
+        const feature = regionData.features.find(
+            (f) => f.properties?.name === highlightDistrict
+        );
+        if (!feature) return;
+
+        const coords =
+            feature.geometry.type === "Polygon"
+                ? (feature.geometry as GeoJSON.Polygon).coordinates[0]
+                : feature.geometry.type === "MultiPolygon"
+                    ? (feature.geometry as GeoJSON.MultiPolygon).coordinates[0][0]
+                    : [];
+
+        if (coords.length === 0) return;
+
+        const lngs = coords.map((c) => c[0]);
+        const lats = coords.map((c) => c[1]);
+
+        setViewState({
+            longitude: (Math.min(...lngs) + Math.max(...lngs)) / 2,
+            latitude: (Math.min(...lats) + Math.max(...lats)) / 2,
+            zoom: 8,
+        });
+    }, [highlightDistrict, regionData]);
+
+
+
     return (
         <div className="relative w-full h-full">
             <Map
@@ -123,11 +157,11 @@ export default function MapView() {
                 maxBounds={[[SELANGOR_BOUNDS[0], SELANGOR_BOUNDS[1]], [SELANGOR_BOUNDS[2], SELANGOR_BOUNDS[3]]]}
                 minZoom={9}
                 maxZoom={18}
-                interactiveLayerIds={regionData ? ["region-fill"] : undefined}
+                interactiveLayerIds={disableInteraction ? undefined : (regionData ? ["region-fill"] : undefined)}
                 onClick={handleMapClick}
-                cursor={cursor}
-                onMouseEnter={onMouseEnter}
-                onMouseLeave={onMouseLeave}
+                cursor={disableInteraction ? "default" : cursor}
+                onMouseEnter={disableInteraction ? undefined : onMouseEnter}
+                onMouseLeave={disableInteraction ? undefined : onMouseLeave}
             >
                 <NavigationControl position="top-right" />
 
@@ -137,19 +171,21 @@ export default function MapView() {
                             id="region-fill"
                             type="fill"
                             paint={{
-                                "fill-color": [
-                                    "case",
-                                    ["==", ["get", "crimeCount"], null],
-                                    "#1f1f29", // no data yet
-                                    [
-                                        "interpolate", ["linear"], ["get", "crimeCount"],
-                                        0, "#22c55e",
-                                        500, "#eab308",
-                                        1000, "#f97316",
-                                        2000, "#ef4444",
+                                "fill-color": highlightDistrict
+                                    ? "#1f1f29"
+                                    : [
+                                        "case",
+                                        ["==", ["get", "crimeCount"], null],
+                                        "#1f1f29",
+                                        [
+                                            "interpolate", ["linear"], ["get", "crimeCount"],
+                                            0, "#22c55e",
+                                            500, "#eab308",
+                                            1000, "#f97316",
+                                            2000, "#ef4444",
+                                        ],
                                     ],
-                                ],
-                                "fill-opacity": 0.5,
+                                "fill-opacity": highlightDistrict ? 0.3 : 0.5,
                             }}
                         />
 
@@ -178,6 +214,19 @@ export default function MapView() {
                                 "text-halo-width": 2
                             }}
                         />
+
+                        {highlightDistrict && (
+                            <Layer
+                                id="region-highlight"
+                                type="fill"
+                                filter={["==", ["get", "name"], highlightDistrict]}
+                                paint={{
+                                    "fill-color": "#f97316",
+                                    "fill-opacity": 0.6,
+                                }}
+                            />
+                        )}
+
                     </Source>
                 )}
             </Map>
