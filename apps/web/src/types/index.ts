@@ -21,7 +21,7 @@ export interface Report {
 
 export interface ModerationQueueItem {
     reportId: string;
-    queue: { status: string; createdAt: string };
+    queue?: { status: string; createdAt: string };
     report: Report | null;
     media: string[];
 }

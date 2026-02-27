@@ -13,37 +13,29 @@ const reportIdParamsSchema = z.object({
 
 export async function moderationRoutes(app: FastifyInstance): Promise<void> {
   app.get(
-    "/moderation/queue",
+    "/moderation/reports",
     { preHandler: [requireAuth, requireModerator] },
     async (req, reply) => {
-      const { data: queueRows, error: queueErr } = await supabase
-        .from("moderation_queue")
-        .select("report_id,status,created_at")
-        .eq("status", "open")
-        .order("created_at", { ascending: false })
-        .limit(50);
-
-      if (queueErr) {
-        req.log.error({ error: queueErr }, "Failed to fetch moderation queue");
-        return reply.status(500).send({ error: "Failed to fetch queue" });
-      }
-
-      const reportIds = (queueRows ?? []).map((r) => r.report_id as string);
-
-      if (reportIds.length === 0) {
-        return reply.send({ items: [] });
-      }
-
       const { data: reports, error: reportsErr } = await supabase
         .from("reports")
         .select(
           "id,user_id,type,description,date,status,ai_confidence,created_at,district,state,landmark_label",
         )
-        .in("id", reportIds);
+        .eq("status", "needs_moderator")
+        .order("created_at", { ascending: false })
+        .limit(50);
 
       if (reportsErr) {
-        req.log.error({ error: reportsErr }, "Failed to fetch queued reports");
+        req.log.error(
+          { error: reportsErr },
+          "Failed to fetch moderation reports",
+        );
         return reply.status(500).send({ error: "Failed to fetch reports" });
+      }
+
+      const reportIds = (reports ?? []).map((r) => r.id as string);
+      if (reportIds.length === 0) {
+        return reply.send({ items: [] });
       }
 
       const { data: media, error: mediaErr } = await supabase
@@ -52,12 +44,9 @@ export async function moderationRoutes(app: FastifyInstance): Promise<void> {
         .in("report_id", reportIds);
 
       if (mediaErr) {
-        req.log.error({ error: mediaErr }, "Failed to fetch queued media");
+        req.log.error({ error: mediaErr }, "Failed to fetch report media");
         return reply.status(500).send({ error: "Failed to fetch media" });
       }
-
-      const reportById = new Map<string, (typeof reports)[number]>();
-      for (const r of reports ?? []) reportById.set(r.id as string, r);
 
       const mediaByReportId = new Map<string, string[]>();
       for (const m of media ?? []) {
@@ -67,12 +56,12 @@ export async function moderationRoutes(app: FastifyInstance): Promise<void> {
         mediaByReportId.set(rid, arr);
       }
 
-      const items = (queueRows ?? []).map((q) => {
-        const reportId = q.report_id as string;
+      const items = (reports ?? []).map((r) => {
+        const reportId = r.id as string;
         return {
           reportId,
-          queue: { status: q.status, createdAt: q.created_at },
-          report: reportById.get(reportId) ?? null,
+          queue: { status: "open", createdAt: r.created_at },
+          report: r,
           media: mediaByReportId.get(reportId) ?? [],
         };
       });
@@ -115,14 +104,6 @@ export async function moderationRoutes(app: FastifyInstance): Promise<void> {
       if (reportErr) {
         req.log.error({ error: reportErr }, "Failed to approve report");
         return reply.status(500).send({ error: "Failed to approve report" });
-      }
-
-      const { error: queueErr } = await supabase
-        .from("moderation_queue")
-        .update({ status: "resolved" })
-        .eq("report_id", reportId);
-      if (queueErr) {
-        req.log.warn({ error: queueErr }, "Failed to resolve moderation queue");
       }
 
       const { error: actionErr } = await supabase
@@ -186,14 +167,6 @@ export async function moderationRoutes(app: FastifyInstance): Promise<void> {
       if (reportErr) {
         req.log.error({ error: reportErr }, "Failed to reject report");
         return reply.status(500).send({ error: "Failed to reject report" });
-      }
-
-      const { error: queueErr } = await supabase
-        .from("moderation_queue")
-        .update({ status: "resolved" })
-        .eq("report_id", reportId);
-      if (queueErr) {
-        req.log.warn({ error: queueErr }, "Failed to resolve moderation queue");
       }
 
       const { error: actionErr } = await supabase

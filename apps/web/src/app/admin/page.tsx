@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getModerationQueue, approveReport, rejectReport } from "@/lib/services";
+import { getModerationReports, approveReport, rejectReport } from "@/lib/services";
 import { ModerationQueueItem } from "@/types";
 import { queryClient } from "@/lib/client";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
@@ -13,8 +13,8 @@ export default function AdminPage() {
     const [selectedIncident, setSelectedIncident] = useState<ModerationQueueItem | null>(null);
 
     const { data, isLoading } = useQuery({
-        queryKey: ["moderation-queue"],
-        queryFn: getModerationQueue,
+        queryKey: ["moderation-reports"],
+        queryFn: getModerationReports,
     });
 
     const items: ModerationQueueItem[] = data?.items ?? [];
@@ -22,7 +22,7 @@ export default function AdminPage() {
     const { mutate: approve } = useMutation({
         mutationFn: (reportId: string) => approveReport(reportId),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["moderation-queue"] });
+            queryClient.invalidateQueries({ queryKey: ["moderation-reports"] });
             setSelectedIncident(null);
         },
     });
@@ -30,7 +30,7 @@ export default function AdminPage() {
     const { mutate: reject } = useMutation({
         mutationFn: (reportId: string) => rejectReport(reportId),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["moderation-queue"] });
+            queryClient.invalidateQueries({ queryKey: ["moderation-reports"] });
             setSelectedIncident(null);
         },
     });

@@ -23,7 +23,7 @@ export default function VerificationQueue({ incidents, selectedIncident, onSelec
                         description={incident.report?.description ?? null}
                         district={incident.report?.district ?? null}
                         state={incident.report?.state ?? null}
-                        time={incident.queue.createdAt}
+                        time={incident.report?.created_at ?? incident.queue?.createdAt ?? new Date().toISOString()}
                         isSelected={selectedIncident?.reportId === incident.reportId}
                         onClick={() => onSelectIncident(incident)}
                     />

@@ -33,8 +33,8 @@ export async function getFeed() {
     return await getRequest({ url: "/feed" });
 }
 
-export async function getModerationQueue() {
-    return await getRequest({ url: "/moderation/queue" });
+export async function getModerationReports() {
+    return await getRequest({ url: "/moderation/reports" });
 }
 
 export async function approveReport(reportId: string) {

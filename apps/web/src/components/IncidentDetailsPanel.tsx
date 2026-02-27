@@ -46,7 +46,7 @@ export default function IncidentDetailsPanel({ incident, onApprove, onReject }: 
                     </span>
                 </div>
                 <span className="text-xs text-muted-foreground">
-                    {new Date(incident.queue.createdAt).toLocaleString()}
+                    {new Date(incident.report?.created_at ?? incident.queue?.createdAt ?? Date.now()).toLocaleString()}
                 </span>
             </div>
 
@@ -62,7 +62,7 @@ export default function IncidentDetailsPanel({ incident, onApprove, onReject }: 
                             </h4>
                             <span className="text-xs text-muted-foreground flex items-center gap-1">
                                 <Clock size={12} />
-                                {new Date(incident.queue.createdAt).toLocaleString()}
+                                {new Date(incident.report?.created_at ?? incident.queue?.createdAt ?? Date.now()).toLocaleString()}
                             </span>
                         </div>
                         <div className="bg-muted/30 border border-border rounded-lg p-4">

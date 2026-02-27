@@ -92,7 +92,7 @@ export async function reportsRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
-  // 2) Submit: attach type, media, details, enqueue + pipeline.
+      // 2) Submit: attach type, media, details + pipeline.
   app.post(
     "/reports/submit",
     { preHandler: requireAuth },
@@ -162,16 +162,6 @@ export async function reportsRoutes(app: FastifyInstance): Promise<void> {
         .upsert({ report_id: parsed.data.reportId, likes: 0, views: 0 });
       if (metricsErr) {
         req.log.warn({ error: metricsErr }, "Failed to init report metrics");
-      }
-
-      const { error: queueErr } = await supabase
-        .from("moderation_queue")
-        .upsert({
-          report_id: parsed.data.reportId,
-          status: "open",
-        });
-      if (queueErr) {
-        req.log.warn({ error: queueErr }, "Failed to upsert moderation queue");
       }
 
       void runReportPipeline({

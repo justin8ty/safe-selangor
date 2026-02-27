@@ -38,7 +38,6 @@ App tables:
 - `reports(id, user_id, state, district, category, type, date, description, status, ai_confidence, created_at)`
 - `report_location_private(report_id pk/fk, lat, lng)` (never returned to public clients)
 - `report_media(id, report_id, storage_key)`
-- `moderation_queue(report_id pk/fk, status)`
 - `moderation_actions(id, report_id, moderator_profile_id, action)`
 - `report_metrics(report_id pk/fk, likes int, views int)`
 - `report_likes(report_id, user_id, unique(report_id,user_id))`

@@ -19,7 +19,6 @@ export async function getNearestLandmarkLabel(input: {
   const timeout = setTimeout(() => controller.abort(), input.timeoutMs ?? 5000);
 
   try {
-    // use a small radius for "nearest".
     const url = new URL(
       "https://maps.googleapis.com/maps/api/place/nearbysearch/json",
     );

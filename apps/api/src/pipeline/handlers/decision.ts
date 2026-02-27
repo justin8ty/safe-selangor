@@ -18,13 +18,6 @@ export async function decisionHandler(
 
     if (reportErr) throw reportErr;
 
-    const { error: queueErr } = await supabase.from("moderation_queue").upsert({
-      report_id: ctx.reportId,
-      status: "open",
-    });
-
-    if (queueErr) throw queueErr;
-
     bus.emit(PipelineEvents.NEEDS_MODERATOR, { ...ctx, aiDecision: decision });
 
     io?.of("/moderation")
@@ -49,15 +42,6 @@ export async function decisionHandler(
     .update({ status: "approved" })
     .eq("id", ctx.reportId);
   if (error) throw error;
-
-  // Resolve any open moderation entry if auto-approved.
-  const { error: queueErr } = await supabase
-    .from("moderation_queue")
-    .update({ status: "resolved" })
-    .eq("report_id", ctx.reportId);
-  if (queueErr) {
-    // Non-fatal; report is already approved.
-  }
 
   bus.emit(PipelineEvents.APPROVED, { ...ctx, aiDecision: decision });
   return { ...ctx, aiDecision: decision };
