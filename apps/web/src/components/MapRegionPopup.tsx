@@ -1,13 +1,10 @@
 import { X, TrendingUp, TrendingDown, Clock, ChevronRight } from "lucide-react";
 import { formatRelativeTime } from "@/lib/utils";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 export interface RegionInfo {
     name: string;
-    crimeTrend: {
-        change: string;
-        direction: "up" | "down";
-        period: string;
-    };
+    trendScores: { year: number; month: number; score: number }[];
     totalReports: number;
     latestIncidents: {
         type: string;
@@ -24,6 +21,14 @@ interface MapRegionPopupProps {
 }
 
 export default function MapRegionPopup({ info, onClose, onIncidentClick }: MapRegionPopupProps) {
+    const chartData = info.trendScores.map((s) => ({
+        month: new Date(s.year, s.month - 1).toLocaleString("en", { month: "short" }),
+        score: s.score,
+    }));
+
+    const trendUp = chartData.length >= 2 && chartData[chartData.length - 1].score >= chartData[chartData.length - 2].score;
+    const trendColor = trendUp ? "#22c55e" : "#ef4444";
+
     return (
         <div className="absolute top-4 left-4 z-10 w-80 bg-background/95 backdrop-blur-md border border-border shadow-xl rounded-xl overflow-hidden animate-in fade-in slide-in-from-left-4 duration-300">
             <div className="p-4 border-b border-border bg-muted/20 flex items-center justify-between">
@@ -46,15 +51,48 @@ export default function MapRegionPopup({ info, onClose, onIncidentClick }: MapRe
             <div className="p-4 flex flex-col gap-4">
                 <div>
                     <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground block mb-2">
-                        Crime Trend ({info.crimeTrend.period})
+                        Safety Score Trend
                     </span>
-                    <div className="flex items-center gap-2">
-                        <span className={`flex items-center gap-1 font-bold ${info.crimeTrend.direction === 'up' ? 'text-destructive' : 'text-green-500'}`}>
-                            {info.crimeTrend.direction === 'up' ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                            {info.crimeTrend.change}
-                        </span>
-                        <span className="text-sm text-muted-foreground">vs last period</span>
-                    </div>
+                    {chartData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={100}>
+                            <AreaChart data={chartData} margin={{ top: 5, right: 10, bottom: 0, left: 10 }}>
+                                <defs>
+                                    <linearGradient id="scoreFill" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor={trendColor} stopOpacity={0.3} />
+                                        <stop offset="100%" stopColor={trendColor} stopOpacity={0.03} />
+                                    </linearGradient>
+                                </defs>
+                                <XAxis
+                                    dataKey="month"
+                                    tick={{ fill: "#888", fontSize: 11 }}
+                                    axisLine={false}
+                                    tickLine={false}
+                                    padding={{ left: 10, right: 10 }}
+                                />
+                                <YAxis domain={[0, 100]} hide />
+                                <Tooltip
+                                    contentStyle={{
+                                        background: "#1a1a2e",
+                                        border: "1px solid #333",
+                                        borderRadius: 8,
+                                        fontSize: 12,
+                                    }}
+                                    labelStyle={{ color: "#aaa" }}
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="score"
+                                    stroke={trendColor}
+                                    strokeWidth={2}
+                                    fill="url(#scoreFill)"
+                                    dot={{ fill: trendColor, r: 3 }}
+                                    activeDot={{ r: 5 }}
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <span className="text-xs text-muted-foreground italic">No trend data available.</span>
+                    )}
                 </div>
 
                 <div className="border-t border-border pt-4">
