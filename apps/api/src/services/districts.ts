@@ -1,6 +1,8 @@
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
 import { readFile } from "node:fs/promises";
 
+import { supabase } from "./supabase.ts";
+
 type GeoJsonFeatureCollection = {
   type: "FeatureCollection";
   features: Array<{
@@ -14,8 +16,51 @@ type GeoJsonFeatureCollection = {
 
 type DistrictMatch = {
   district: string;
-  state: string;
+  state: string | null;
 };
+
+const stateByDistrict = new Map<string, string | null>();
+
+async function tryGetStateByColumn(
+  column: "district" | "name",
+  district: string,
+): Promise<string | null | undefined> {
+  const { data, error } = await supabase
+    .from("districts")
+    .select("state")
+    .eq(column, district)
+    .maybeSingle();
+
+  if (error) {
+    // If the schema uses a different column name, try the alternative.
+    if (typeof error.message === "string" && error.message.includes("column")) {
+      return undefined;
+    }
+    return null;
+  }
+
+  const state = (data as any)?.state;
+  return typeof state === "string" && state.trim().length ? state.trim() : null;
+}
+
+export async function getStateForDistrict(
+  district: string,
+): Promise<string | null> {
+  const key = district.trim();
+  if (!key) return null;
+
+  if (stateByDistrict.has(key)) return stateByDistrict.get(key) ?? null;
+
+  // Common schemas: districts(district,state) or districts(name,state)
+  let state = await tryGetStateByColumn("district", key);
+  if (typeof state === "undefined") {
+    state = await tryGetStateByColumn("name", key);
+  }
+
+  const normalized = typeof state === "string" ? state : null;
+  stateByDistrict.set(key, normalized);
+  return normalized;
+}
 
 let cached: GeoJsonFeatureCollection | null = null;
 
@@ -102,7 +147,8 @@ export async function matchDistrictFromLatLng(input: {
     try {
       const ok = booleanPointInPolygon(point as any, feature as any);
       if (ok) {
-        return { district: name, state: "Selangor" };
+        const state = await getStateForDistrict(name);
+        return { district: name, state };
       }
     } catch {
       // Ignore malformed polygons.
@@ -123,7 +169,8 @@ export async function matchDistrictFromLatLng(input: {
   }
 
   if (!best) return null;
-  return { district: best.name, state: "Selangor" };
+  const state = await getStateForDistrict(best.name);
+  return { district: best.name, state };
 }
 
 export async function listDistrictNames(): Promise<string[]> {

@@ -18,7 +18,8 @@ const signUploadsBodySchema = z.object({
         mime: z.enum(["image/jpeg", "image/png", "image/webp"]),
       }),
     )
-    .min(1),
+    .min(1)
+    .max(env.MAX_IMAGES_PER_REPORT),
 });
 
 export async function uploadsRoutes(app: FastifyInstance): Promise<void> {

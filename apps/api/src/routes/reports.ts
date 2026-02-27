@@ -2,10 +2,12 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 
 import { requireAuth } from "../auth/requireAuth.ts";
+import { env } from "../config/env.ts";
 import { supabase } from "../services/supabase.ts";
 import { runReportPipeline } from "../pipeline/runReportPipeline.ts";
 import {
   listDistrictNames,
+  getStateForDistrict,
   matchDistrictFromLatLng,
 } from "../services/districts.ts";
 import { mergeDescriptionParts } from "../services/text.ts";
@@ -19,7 +21,10 @@ const submitBodySchema = z.object({
   reportId: z.string().min(1),
   type: z.enum(["violent", "property"]),
   district: z.string().min(1),
-  storageKeys: z.array(z.string().min(1)).min(1),
+  storageKeys: z
+    .array(z.string().min(1))
+    .min(1)
+    .max(env.MAX_IMAGES_PER_REPORT),
   details: z.string().optional(),
 });
 
@@ -128,14 +133,20 @@ export async function reportsRoutes(app: FastifyInstance): Promise<void> {
         parsed.data.details ?? null,
       );
 
+      const state = await getStateForDistrict(parsed.data.district);
+
+      const update: Record<string, unknown> = {
+        type: parsed.data.type,
+        district: parsed.data.district,
+        description: mergedDetails,
+        status: "needs_moderator",
+      };
+
+      if (state) update.state = state;
+
       const { error: updErr } = await supabase
         .from("reports")
-        .update({
-          type: parsed.data.type,
-          district: parsed.data.district,
-          description: mergedDetails,
-          status: "needs_moderator",
-        })
+        .update(update)
         .eq("id", parsed.data.reportId);
 
       if (updErr) {
