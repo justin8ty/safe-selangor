@@ -53,6 +53,7 @@ export default function Sidebar({ feedItems }: SidebarProps) {
                             description: incident.description || "No description provided.",
                             time: incident.createdAt ? new Date(incident.createdAt).toLocaleString() : "",
                             mediaKey: incident.mediaKey,
+                            mediaKeys: incident.mediaKeys ?? (incident.mediaKey ? [incident.mediaKey] : []),
                         })}
 
                     />

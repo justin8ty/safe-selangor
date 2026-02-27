@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, MapPin, CheckCircle, Swords, Landmark } from "lucide-react";
+import { X, MapPin, CheckCircle, Swords, Landmark, Loader2 } from "lucide-react";
 import { createReportDraft, createReport, getReport } from "@/lib/services";
 import { postRequest } from "@/lib/interceptor";
 import { supabase } from "@/lib/supabase";
@@ -334,6 +334,7 @@ export default function ReportPop({ open, onClose }: ReportModalProps) {
                 <div className="mb-6">
                     <h3 className="text-sm font-semibold text-foreground mb-3">4. ADD IMAGE</h3>
                     <input
+                        id="report-images"
                         type="file"
                         multiple
                         accept="image/jpeg,image/png,image/webp"
@@ -367,11 +368,24 @@ export default function ReportPop({ open, onClose }: ReportModalProps) {
                             try {
                                 await signAndUploadPending(nextImages);
                             } catch (err) {
-                                toast.error(err instanceof Error ? err.message : "Failed to upload images");
+                                toast.error(
+                                    err instanceof Error
+                                        ? err.message
+                                        : "Failed to upload images",
+                                );
                             }
                         }}
-                        className="w-full text-sm"
+                        className="sr-only"
                     />
+                    <label
+                        htmlFor="report-images"
+                        className="inline-flex items-center justify-center rounded-lg border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted/40 transition-colors cursor-pointer select-none"
+                    >
+                        Choose Files
+                    </label>
+                    <span className="ml-3 text-xs text-muted-foreground">
+                        {images.length}/3 selected
+                    </span>
                     <p className="text-xs text-muted-foreground mt-2">
                         Upload up to 3 images. At least one image is required.
                     </p>
@@ -428,8 +442,16 @@ export default function ReportPop({ open, onClose }: ReportModalProps) {
                         disabled={!canSubmit}
                         className="flex items-center gap-2 bg-destructive text-destructive-foreground px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-destructive/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <CheckCircle className="w-4 h-4" />
-                        {submitting ? "Submitting..." : uploading ? "Uploading..." : "Submit Report"}
+                        {submitting || uploading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <CheckCircle className="w-4 h-4" />
+                        )}
+                        {submitting
+                            ? "Submitting..."
+                            : uploading
+                                ? "Uploading..."
+                                : "Submit Report"}
                     </button>
                 </div>
             </div>

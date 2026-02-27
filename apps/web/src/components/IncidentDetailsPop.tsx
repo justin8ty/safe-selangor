@@ -1,7 +1,8 @@
 "use client";
 
-import { X, MapPin, Clock, ImageIcon, ShieldAlert } from "lucide-react";
+import { X, MapPin, Clock, ImageIcon, ShieldAlert, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useEffect, useMemo, useState } from "react";
 
 export interface Incident {
     type: string;
@@ -9,6 +10,7 @@ export interface Incident {
     description: string;
     time: string;
     mediaKey: string | null;
+    mediaKeys?: string[];
 }
 
 interface IncidentDetailsPopProps {
@@ -26,6 +28,22 @@ function getMediaUrl(storageKey: string): string {
 
 export default function IncidentDetailsPop({ open, onClose, incident }: IncidentDetailsPopProps) {
     if (!open || !incident) return null;
+
+    const mediaKeys = useMemo(() => {
+        if (incident.mediaKeys?.length) return incident.mediaKeys;
+        if (incident.mediaKey) return [incident.mediaKey];
+        return [];
+    }, [incident.mediaKey, incident.mediaKeys]);
+
+    const [activeIndex, setActiveIndex] = useState(0);
+
+    useEffect(() => {
+        setActiveIndex(0);
+    }, [incident]);
+
+    const canPrev = activeIndex > 0;
+    const canNext = activeIndex < mediaKeys.length - 1;
+    const activeKey = mediaKeys[activeIndex] ?? null;
 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
@@ -95,13 +113,42 @@ export default function IncidentDetailsPop({ open, onClose, incident }: Incident
                         <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-4 flex items-center gap-2">
                             <ImageIcon size={14} /> User Uploaded Image
                         </h4>
-                        {incident.mediaKey ? (
-                            <img
-                                src={getMediaUrl(incident.mediaKey)}
-                                alt="Evidence"
-                                className="w-full rounded-xl border border-border cursor-pointer hover:opacity-90 transition-opacity"
-                                onClick={() => window.open(getMediaUrl(incident.mediaKey!), "_blank")}
-                            />
+                        {activeKey ? (
+                            <div className="relative">
+                                <img
+                                    src={getMediaUrl(activeKey)}
+                                    alt={`Evidence ${activeIndex + 1}`}
+                                    className="w-full rounded-xl border border-border cursor-pointer hover:opacity-90 transition-opacity"
+                                    onClick={() => window.open(getMediaUrl(activeKey), "_blank")}
+                                />
+
+                                {mediaKeys.length > 1 && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveIndex((i) => Math.max(0, i - 1))}
+                                            disabled={!canPrev}
+                                            aria-label="Previous image"
+                                            className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full border border-border bg-background/80 backdrop-blur text-foreground hover:bg-background disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <ChevronLeft className="w-5 h-5 mx-auto" />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveIndex((i) => Math.min(mediaKeys.length - 1, i + 1))}
+                                            disabled={!canNext}
+                                            aria-label="Next image"
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full border border-border bg-background/80 backdrop-blur text-foreground hover:bg-background disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <ChevronRight className="w-5 h-5 mx-auto" />
+                                        </button>
+
+                                        <div className="absolute bottom-3 right-3 px-2 py-1 rounded-md border border-border bg-background/80 backdrop-blur text-[10px] font-semibold text-muted-foreground">
+                                            {activeIndex + 1}/{mediaKeys.length}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
                         ) : (
                             <p className="text-sm text-muted-foreground italic">No image attached</p>
                         )}
