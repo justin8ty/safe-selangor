@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 
 import { requireAuth } from "../auth/requireAuth.ts";
+import { requireModerator } from "../auth/requireModerator.ts";
 import { supabase } from "../services/supabase.ts";
 import { io } from "../sockets/index.ts";
 import { getReportCard } from "../services/feed.ts";
@@ -13,7 +14,7 @@ const reportIdParamsSchema = z.object({
 export async function moderationRoutes(app: FastifyInstance): Promise<void> {
   app.get(
     "/moderation/queue",
-    { preHandler: requireAuth },
+    { preHandler: [requireAuth, requireModerator] },
     async (req, reply) => {
       const { data: queueRows, error: queueErr } = await supabase
         .from("moderation_queue")
@@ -82,7 +83,7 @@ export async function moderationRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/moderation/:reportId/approve",
-    { preHandler: requireAuth },
+    { preHandler: [requireAuth, requireModerator] },
     async (req, reply) => {
       const parsedParams = reportIdParamsSchema.safeParse(req.params);
       if (!parsedParams.success) {
@@ -149,7 +150,7 @@ export async function moderationRoutes(app: FastifyInstance): Promise<void> {
 
   app.post(
     "/moderation/:reportId/reject",
-    { preHandler: requireAuth },
+    { preHandler: [requireAuth, requireModerator] },
     async (req, reply) => {
       const parsedParams = reportIdParamsSchema.safeParse(req.params);
       if (!parsedParams.success) {
