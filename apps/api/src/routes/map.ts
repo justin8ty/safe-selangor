@@ -7,7 +7,7 @@ export async function mapRoutes(app: FastifyInstance): Promise<void> {
     "/map/choropleth",
     { preHandler: requireAuth },
     async (_req, reply) => {
-    return reply.status(501).send({ error: "Not implemented" });
+      return reply.status(501).send({ error: "Not implemented" });
     },
   );
 }

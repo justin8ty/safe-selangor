@@ -2,7 +2,7 @@ import { env } from "../config/env.ts";
 
 export type GeminiModerationResult = {
   confidence: number;
-  explanation: string;
+  caption: string;
 };
 
 type GeminiGenerateContentResponse = {
@@ -41,9 +41,10 @@ export async function moderateCrimeSceneWithGemini(input: {
     const prompt =
       "You are a content moderation classifier for a community crime reporting app. " +
       "Your task: decide how likely the image depicts a real-world crime/incident scene. " +
-      "Return ONLY valid JSON with keys: confidence (0-100 integer) and explanation (short string). " +
+      "Return ONLY valid JSON with keys: confidence (0-100 integer) and caption (one short sentence). " +
       "Confidence means likelihood the image depicts a plausible crime/incident scene. " +
-      "If the image is unrelated to a crime scene, confidence should be low.\n\n" +
+      "If the image is unrelated to a crime/incident scene, confidence should be low. " +
+      "The caption must be minimal, one sentence, and describe what is visible without speculation.\n\n" +
       `Context: ${input.contextText}`;
 
     const res = await fetch(url.toString(), {
@@ -85,17 +86,18 @@ export async function moderateCrimeSceneWithGemini(input: {
         .filter(Boolean)
         .join("\n") ?? "";
 
+    console.log(text);
     const parsed = JSON.parse(text) as {
       confidence?: unknown;
-      explanation?: unknown;
+      caption?: unknown;
     };
 
     return {
       confidence: clampConfidence(parsed.confidence),
-      explanation:
-        typeof parsed.explanation === "string" && parsed.explanation.length
-          ? parsed.explanation
-          : "No explanation provided",
+      caption:
+        typeof parsed.caption === "string" && parsed.caption.trim().length
+          ? parsed.caption.trim()
+          : "",
     };
   } finally {
     clearTimeout(timeout);

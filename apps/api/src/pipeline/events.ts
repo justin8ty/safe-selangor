@@ -19,11 +19,11 @@ export interface PipelineContext {
   lng?: number;
   storageKeys?: string[];
   landmarkLabel?: string;
-  placeId?: string;
   district?: string;
   state?: string;
   aiConfidence?: number;
-  aiExplanation?: string;
   aiDecision?: "approved" | "rejected" | "needs_moderator";
+  aiCaption?: string;
+  userDetails?: string;
   error?: Error;
 }

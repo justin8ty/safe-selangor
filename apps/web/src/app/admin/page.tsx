@@ -1,58 +1,95 @@
 "use client";
 
 import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { getModerationReports, approveReport, rejectReport } from "@/lib/services";
+import { ModerationQueueItem } from "@/types";
+import { queryClient } from "@/lib/client";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { QueueIncident } from "./types";
 import VerificationQueue from "../../components/VerificationQueue";
 import IncidentDetailsPanel from "../../components/IncidentDetailsPanel";
-
-const mockQueue: QueueIncident[] = [
-    {
-        id: "RPT-8820",
-        type: "Vandalism",
-        time: "45 mins ago",
-        title: "Vandalism Incident",
-        description: "Graffiti sprayed on the community center wall. Again.",
-        trustScore: 15,
-        confidence: 35,
-        location: "Community Hall A",
-        coordinates: { lat: 3.1412, lng: 101.6865 }
-    },
-    {
-        id: "RPT-8821",
-        type: "Robbery",
-        time: "12 mins ago",
-        title: "Armed Robbery",
-        description: "Armed robbery at the convenience store. Two suspects fled on a motorbike heading north. One carrying a weapon.",
-        trustScore: 88,
-        confidence: 85,
-        location: "Sector 4 Convenience Store",
-        coordinates: { lat: 3.1450, lng: 101.7000 }
-    }
-];
+import { useRealTime } from "@/hooks/useRealTime";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function AdminPage() {
-    const [selectedIncident, setSelectedIncident] = useState<QueueIncident>(mockQueue[0]);
+    const [selectedIncident, setSelectedIncident] = useState<ModerationQueueItem | null>(null);
+
+    const { user } = useAuth();
+
+    useRealTime([["moderation-reports"]], !!user);
+
+    const { data, isLoading } = useQuery({
+        queryKey: ["moderation-reports"],
+        queryFn: getModerationReports,
+        enabled: !!user,
+    });
+
+    const items: ModerationQueueItem[] = data?.items ?? [];
+
+    const { mutate: approve } = useMutation({
+        mutationFn: (reportId: string) => approveReport(reportId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["moderation-reports"] });
+            setSelectedIncident(null);
+        },
+    });
+
+    const { mutate: reject } = useMutation({
+        mutationFn: (reportId: string) => rejectReport(reportId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["moderation-reports"] });
+            setSelectedIncident(null);
+        },
+    });
 
     return (
-        <div className="flex h-screen bg-background text-foreground overflow-hidden">
-            <ResizablePanelGroup orientation="horizontal">
-                {/* Left Panel: Verification Queue */}
-                <ResizablePanel defaultSize="30%" className="border-r border-border bg-card">
-                    <VerificationQueue
-                        incidents={mockQueue}
-                        selectedIncident={selectedIncident}
-                        onSelectIncident={setSelectedIncident}
-                    />
-                </ResizablePanel>
+        <div className="flex h-screen bg-background text-foreground overflow-hidden w-full">
+            {/* MOBILE LAYOUT*/}
+            <div className="md:hidden flex flex-col flex-1 w-full h-full">
+                {!selectedIncident ? (
+                    <div className="flex-1 w-full bg-card overflow-y-auto">
+                        <VerificationQueue
+                            incidents={items}
+                            selectedIncident={selectedIncident}
+                            onSelectIncident={setSelectedIncident}
+                            isLoading={isLoading}
+                        />
+                    </div>
+                ) : (
+                    <div className="flex-1 w-full overflow-hidden flex flex-col">
+                        <IncidentDetailsPanel
+                            incident={selectedIncident}
+                            onApprove={(id) => approve(id)}
+                            onReject={(id) => reject(id)}
+                            onBack={() => setSelectedIncident(null)}
+                        />
+                    </div>
+                )}
+            </div>
 
-                <ResizableHandle withHandle />
+            {/* DESKTOP LAYOUT*/}
+            <div className="hidden md:flex flex-1 w-full h-full">
+                <ResizablePanelGroup orientation="horizontal">
+                    <ResizablePanel defaultSize="35%" className="border-r border-border bg-card">
+                        <VerificationQueue
+                            incidents={items}
+                            selectedIncident={selectedIncident}
+                            onSelectIncident={setSelectedIncident}
+                            isLoading={isLoading}
+                        />
+                    </ResizablePanel>
 
-                {/* Right Panel: Incident Details */}
-                <ResizablePanel defaultSize="70%">
-                    <IncidentDetailsPanel incident={selectedIncident} />
-                </ResizablePanel>
-            </ResizablePanelGroup>
+                    <ResizableHandle withHandle />
+
+                    <ResizablePanel defaultSize="65%">
+                        <IncidentDetailsPanel
+                            incident={selectedIncident}
+                            onApprove={(id) => approve(id)}
+                            onReject={(id) => reject(id)}
+                        />
+                    </ResizablePanel>
+                </ResizablePanelGroup>
+            </div>
         </div>
     );
 }

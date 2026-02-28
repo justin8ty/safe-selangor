@@ -2,105 +2,235 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 
 import { requireAuth } from "../auth/requireAuth.ts";
+import { env } from "../config/env.ts";
 import { supabase } from "../services/supabase.ts";
 import { runReportPipeline } from "../pipeline/runReportPipeline.ts";
+import {
+  listDistrictNames,
+  getStateForDistrict,
+  matchDistrictFromLatLng,
+} from "../services/districts.ts";
+import { mergeDescriptionParts } from "../services/text.ts";
 
-const createReportBodySchema = z.object({
-  storageKeys: z.array(z.string().min(1)).min(1),
+const createDraftBodySchema = z.object({
   lat: z.number(),
   lng: z.number(),
-  state: z.string().min(1),
+});
+
+const submitBodySchema = z.object({
+  reportId: z.string().min(1),
+  type: z.enum(["violent", "property"]),
   district: z.string().min(1),
-  category: z.string().min(1),
-  type: z.string().min(1),
-  description: z.string().optional(),
-  date: z.string().datetime().optional(),
+  storageKeys: z
+    .array(z.string().min(1))
+    .min(1)
+    .max(env.MAX_IMAGES_PER_REPORT),
+  details: z.string().optional(),
 });
 
 export async function reportsRoutes(app: FastifyInstance): Promise<void> {
-  app.post("/reports", { preHandler: requireAuth }, async (req, reply) => {
-    const parsed = createReportBodySchema.safeParse(req.body);
-    if (!parsed.success) {
-      return reply.status(400).send({
-        error: "Invalid request body",
-        details: parsed.error.flatten(),
+  app.get("/districts", { preHandler: requireAuth }, async (_req, reply) => {
+    const names = await listDistrictNames();
+    return reply.send({ districts: names });
+  });
+
+  // 1) Draft report: persist precise location, compute district.
+  app.post(
+    "/reports/draft",
+    { preHandler: requireAuth },
+    async (req, reply) => {
+      const parsed = createDraftBodySchema.safeParse(req.body);
+      if (!parsed.success) {
+        return reply.status(400).send({
+          error: "Invalid request body",
+          details: parsed.error.flatten(),
+        });
+      }
+
+      const userId = req.authUser?.userId;
+      if (!userId) return reply.status(401).send({ error: "Unauthorized" });
+
+      const match = await matchDistrictFromLatLng({
+        lat: parsed.data.lat,
+        lng: parsed.data.lng,
       });
+
+      const { data: reportRow, error: reportErr } = await supabase
+        .from("reports")
+        .insert({
+          user_id: userId,
+          type: null,
+          state: match?.state ?? null,
+          district: match?.district ?? null,
+          description: null,
+          status: "needs_moderator",
+          ai_confidence: 0,
+        })
+        .select("id,state,district")
+        .single();
+
+      if (reportErr || !reportRow) {
+        req.log.error({ error: reportErr }, "Failed to create draft report");
+        return reply.status(500).send({ error: "Failed to create report" });
+      }
+
+      const reportId = reportRow.id as string;
+
+      const { error: locErr } = await supabase
+        .from("report_location_private")
+        .insert({
+          report_id: reportId,
+          lat: parsed.data.lat,
+          lng: parsed.data.lng,
+        });
+
+      const { error: locErr2 } = await supabase
+        .from("stats_jobs")
+        .insert({
+          report_id: reportId,
+          status : "pending"
+        });
+
+      if (locErr) {
+        req.log.error({ error: locErr }, "Failed to store private location");
+        return reply.status(500).send({ error: "Failed to store location" });
+      }
+      if (locErr2) {
+        req.log.error({ error: locErr }, "Failed to activate worker");
+        return reply.status(500).send({ error: "Failed to store location" });
+      }
+
+      return reply.status(201).send({
+        reportId,
+        state: (reportRow.state ?? null) as string | null,
+        district: (reportRow.district ?? null) as string | null,
+      });
+    },
+  );
+
+      // 2) Submit: attach type, media, details + pipeline.
+  app.post(
+    "/reports/submit",
+    { preHandler: requireAuth },
+    async (req, reply) => {
+      const parsed = submitBodySchema.safeParse(req.body);
+      if (!parsed.success) {
+        return reply.status(400).send({
+          error: "Invalid request body",
+          details: parsed.error.flatten(),
+        });
+      }
+
+      const userId = req.authUser?.userId;
+      if (!userId) return reply.status(401).send({ error: "Unauthorized" });
+
+      const { data: report, error: findErr } = await supabase
+        .from("reports")
+        .select("id,user_id,description")
+        .eq("id", parsed.data.reportId)
+        .maybeSingle();
+
+      if (findErr) {
+        req.log.error({ error: findErr }, "Failed to lookup report");
+        return reply.status(500).send({ error: "Failed to lookup report" });
+      }
+      if (!report) return reply.status(404).send({ error: "Report not found" });
+      if ((report.user_id as string) !== userId) {
+        return reply.status(403).send({ error: "Forbidden" });
+      }
+
+      const mergedDetails = mergeDescriptionParts(
+        report.description as string | null,
+        parsed.data.details ?? null,
+      );
+
+      const state = await getStateForDistrict(parsed.data.district);
+
+      const update: Record<string, unknown> = {
+        type: parsed.data.type,
+        district: parsed.data.district,
+        description: mergedDetails,
+        status: "needs_moderator",
+      };
+
+      if (state) update.state = state;
+
+      const { error: updErr } = await supabase
+        .from("reports")
+        .update(update)
+        .eq("id", parsed.data.reportId);
+
+      if (updErr) {
+        req.log.error({ error: updErr }, "Failed to update report");
+        return reply.status(500).send({ error: "Failed to update report" });
+      }
+
+      const mediaRows = parsed.data.storageKeys.map((key) => ({
+        report_id: parsed.data.reportId,
+        storage_key: key,
+      }));
+
+      const { error: mediaErr } = await supabase
+        .from("report_media")
+        .insert(mediaRows);
+
+      if (mediaErr) {
+        req.log.error({ error: mediaErr }, "Failed to store media rows");
+        return reply.status(500).send({ error: "Failed to store media" });
+      }
+
+      const { error: metricsErr } = await supabase
+        .from("report_metrics")
+        .upsert({ report_id: parsed.data.reportId, likes: 0, views: 0 });
+      if (metricsErr) {
+        req.log.warn({ error: metricsErr }, "Failed to init report metrics");
+      }
+
+      void runReportPipeline({
+        reportId: parsed.data.reportId,
+        userId,
+        storageKeys: parsed.data.storageKeys,
+        userDetails: parsed.data.details,
+      });
+
+      return reply.status(200).send({ reportId: parsed.data.reportId });
+    },
+  );
+
+  // Lightweight debug/read endpoint so the web app can verify
+  // pipeline side effects (ai_confidence, description, status).
+  app.get("/reports/:id", { preHandler: requireAuth }, async (req, reply) => {
+    const id = (req.params as { id?: unknown })?.id;
+    if (typeof id !== "string" || !id.trim().length) {
+      return reply.status(400).send({ error: "Invalid report id" });
     }
 
     const userId = req.authUser?.userId;
     if (!userId) return reply.status(401).send({ error: "Unauthorized" });
 
-    const nowIso = new Date().toISOString();
-
-    const { data: reportRow, error: reportErr } = await supabase
+    const { data, error } = await supabase
       .from("reports")
-      .insert({
-        user_id: userId,
-        category: parsed.data.category,
-        type: parsed.data.type,
-        state: parsed.data.state,
-        district: parsed.data.district,
-        description: parsed.data.description ?? null,
-        date: parsed.data.date ?? nowIso,
-        status: "pending",
-      })
-      .select("id")
-      .single();
+      .select(
+        "id,user_id,type,description,status,ai_confidence,created_at,district,state,landmark_label",
+      )
+      .eq("id", id)
+      .maybeSingle();
 
-    if (reportErr || !reportRow) {
-      req.log.error({ error: reportErr }, "Failed to create report");
-      return reply.status(500).send({ error: "Failed to create report" });
+    if (error) {
+      req.log.error({ error }, "Failed to fetch report");
+      return reply.status(500).send({ error: "Failed to fetch report" });
+    }
+    if (!data) return reply.status(404).send({ error: "Report not found" });
+
+    // Owner or moderator can read it.
+    if (
+      (data.user_id as string) !== userId &&
+      req.authUser?.role !== "moderator"
+    ) {
+      return reply.status(403).send({ error: "Forbidden" });
     }
 
-    const reportId = reportRow.id as string;
-
-    const { error: locErr } = await supabase
-      .from("report_location_private")
-      .insert({
-        report_id: reportId,
-        lat: parsed.data.lat,
-        lng: parsed.data.lng,
-      });
-
-    if (locErr) {
-      req.log.error({ error: locErr }, "Failed to store private location");
-      return reply.status(500).send({ error: "Failed to store location" });
-    }
-
-    const mediaRows = parsed.data.storageKeys.map((key) => ({
-      report_id: reportId,
-      storage_key: key,
-    }));
-
-    const { error: mediaErr } = await supabase
-      .from("report_media")
-      .insert(mediaRows);
-
-    if (mediaErr) {
-      req.log.error({ error: mediaErr }, "Failed to store media rows");
-      return reply.status(500).send({ error: "Failed to store media" });
-    }
-
-    const { error: metricsErr } = await supabase
-      .from("report_metrics")
-      .insert({ report_id: reportId, likes: 0, views: 0 });
-    if (metricsErr) {
-      req.log.warn({ error: metricsErr }, "Failed to init report metrics");
-    }
-
-    void runReportPipeline({
-      reportId,
-      userId,
-      lat: parsed.data.lat,
-      lng: parsed.data.lng,
-      storageKeys: parsed.data.storageKeys,
-    });
-
-    return reply.status(201).send({ reportId, status: "pending" });
-  });
-
-  app.get("/reports/:id", { preHandler: requireAuth }, async (_req, reply) => {
-    return reply.status(501).send({ error: "Not implemented" });
+    return reply.send({ report: data });
   });
 
   app.post(

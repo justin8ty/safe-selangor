@@ -1,15 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Search } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import globalData from "@/config/global.json";
-import ReportPop from "@/components/ReportPop"
+import ReportPop from "@/components/ReportPop";
+import { useAuth } from "@/hooks/useAuth";
+import { Shield } from "lucide-react";
 
-export default function Navbar() {
+export default function Topnav() {
     const [reportOpen, setReportOpen] = useState(false);
     const pathname = usePathname();
+    const { user } = useAuth();
 
     const isAuthPage = pathname === "/login" || pathname === "/signup";
 
@@ -17,7 +20,16 @@ export default function Navbar() {
         <>
             <nav className="flex items-center justify-between px-6 py-4 border-b border-border bg-card sticky">
                 <Link href="/" className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-primary rounded-lg" />
+                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                        <Image
+                            src="/logo.png"
+                            alt="Safe Selangor"
+                            width={48}
+                            height={48}
+                            className="w-12 h-12 object-contain"
+                            priority
+                        />
+                    </div>
                     <div>
                         <h1 className="font-semibold text-foreground">{globalData.header.title}</h1>
                         <p className="text-sm text-muted-foreground">{globalData.header.subtitle}</p>
@@ -26,22 +38,16 @@ export default function Navbar() {
 
                 {!isAuthPage && (
                     <>
-                        <div className="relative w-full max-w-md mx-8">
-                            <input
-                                type="text"
-                                placeholder="Search areas or incident"
-                                className="w-full rounded-lg border border-input bg-background px-4 py-2 pl-10 text-sm text-foreground placeholder:text-muted-foreground"
-                            />
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                        </div>
-
                         <div className="flex items-center gap-4">
-                            <Link
-                                href="/login"
-                                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-4 py-2"
-                            >
-                                Log in
-                            </Link>
+                            {user?.role === "moderator" && (
+                                <Link
+                                    href={pathname.startsWith("/admin") ? "/" : "/admin"}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-border hover:bg-muted transition-colors"
+                                >
+                                    <Shield size={16} />
+                                    {pathname.startsWith("/admin") ? "Main Page" : "Admin Page"}
+                                </Link>
+                            )}
                             <button
                                 onClick={() => setReportOpen(true)}
                                 className="bg-destructive text-destructive-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-destructive/90 transition-colors cursor-pointer"

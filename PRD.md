@@ -141,7 +141,6 @@ Caching (in-memory):
 - `users`: id, email, karma, created_at, last_login
 - `reports`: id, user_id, state, district, category, type, date, description, status, ai_confidence, ai_reason_codes, ai_explanation, created_at
 - `report_media`: id, report_id, storage_key/url, mime, size, created_at
-- `moderation_queue`: report_id, status, assigned_to (optional), created_at
 - `moderation_actions`: id, report_id, moderator_id, action, notes, created_at
 - `report_metrics`: report_id, views, likes
 - Aggregated tables (or materialized views):
