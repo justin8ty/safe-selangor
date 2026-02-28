@@ -63,10 +63,24 @@ async def data_extraction(raw_markdown: str):
                     # if url_exist_in_db_result('crime_data.db', data["url"]):
                     #     print(f"URL already exists in Crawl_Result database: {data['url']}")
                     #     continue
+                    process_link(data)
                     insert_Data(data)
 
             else:
                 print("Failed to extract structured data")
+
+def process_link(url):
+    # Example processing: Extract the domain from the URL
+    data = {
+        "is_processed": True
+    }
+    (
+            supabase
+            .table("scraped_link")
+            .update(data)
+            .eq("url", url["url"])
+            .execute()
+    )
 
 def insert_Data(data):
     

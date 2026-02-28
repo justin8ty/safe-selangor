@@ -70,23 +70,13 @@ def load_urls(db_path: str, limit :int) -> List[str]:
         .table("scraped_link")
         .select("url")
         .order("id", desc=False)
+        .eq("is_processed", False)
         .limit(limit)
         .execute()
     )
     loaded_url = []
 
     for row in rows.data:
-        res = (
-            supabase
-            .table("scraped_data")
-            .select("url")
-            .eq("url", row["url"])
-            .limit(1)
-            .execute()
-        )
-        if res.data:
-            print(f"URL already processed: {row['url']}")
-            continue
         loaded_url.append(row["url"])
         print(f"Loaded URL: {row['url']}")
         count += 1
