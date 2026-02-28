@@ -54,7 +54,18 @@ def load_reports(type:str, district:str, now:str, after:str) -> int:
             .filter("date", "lt",  f"{after_str}-01T00:00:00+00")
             .execute())
     print(f"\nLoaded {len(rows.data)} reports for type: {type} in district: {district}\n")
-    return len(rows.data)
+
+    rows_scraped = (supabase.table("scraped_data").
+            select("*")
+            .eq("type", type)
+            .eq("district", district)
+            .filter("date", "gte", f"{now_str}-01T00:00:00+00")
+            .filter("date", "lt",  f"{after_str}-01T00:00:00+00")
+            .execute())
+    
+    total_count = len(rows.data) + len(rows_scraped.data)
+
+    return total_count
 
 def load_baseline(district:str) -> int:
     rows = (supabase.table("baseline").

@@ -32,7 +32,7 @@ async def data_extraction(raw_markdown: str):
         First identify the url that is given after '--- ARTICLE_LINK:'.
         Each article is a news article for malaysian news. if it is a news related to crime, extract the date(with time if present), crime type,malaysia's state, malaysia's district location, 
         victim's age and suspect's age. If there is no crime related information, return 0 for any missing info. Crime types include only violent, property and drugs .rape and sexual harrasment can be counted as violent.
-        If crime is not related to violent, property or drugs return 0.
+        If crime is not related to violent, property or drugs return 0. change the date to format YYYY-MM-DD HH:MM:SS+00.
         """,
         extraction_type="schema",
         schema="{date: string, crime_type: string, state: string, district: string, victim_age: int, suspect_age: int,url: string}",
