@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, MapPin, Image as ImageIcon, CheckCircle, XCircle, MessageSquare, ShieldAlert, Star } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Image as ImageIcon, CheckCircle, XCircle, MessageSquare, ShieldAlert, Star } from "lucide-react";
 import MapView from "@/components/MapView";
 import { ModerationQueueItem } from "@/types";
 import { supabase } from "@/lib/supabase";
@@ -9,6 +9,7 @@ interface IncidentDetailsPanelProps {
     incident: ModerationQueueItem | null;
     onApprove: (reportId: string) => void;
     onReject: (reportId: string) => void;
+    onBack?: () => void;
 }
 
 function getMediaUrl(storageKey: string): string {
@@ -19,7 +20,7 @@ function getMediaUrl(storageKey: string): string {
 }
 
 
-export default function IncidentDetailsPanel({ incident, onApprove, onReject }: IncidentDetailsPanelProps) {
+export default function IncidentDetailsPanel({ incident, onApprove, onReject, onBack }: IncidentDetailsPanelProps) {
     if (!incident) {
         return (
             <div className="flex h-full items-center justify-center text-muted-foreground">
@@ -38,8 +39,19 @@ export default function IncidentDetailsPanel({ incident, onApprove, onReject }: 
             {/* HEADER */}
             <div className="p-4 border-b border-border bg-card flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground uppercase tracking-wider">
+                    {onBack && (
+                        <button
+                            onClick={onBack}
+                            className="md:hidden p-1 -ml-2 rounded-md hover:bg-muted text-muted-foreground transition-colors"
+                        >
+                            <ArrowLeft size={18} />
+                        </button>
+                    )}
+                    <span className="text-xs text-muted-foreground uppercase tracking-wider hidden sm:inline">
                         Queue &gt; #{incident.reportId.slice(0, 8)}
+                    </span>
+                    <span className="text-xs text-muted-foreground uppercase tracking-wider sm:hidden">
+                        #{incident.reportId.slice(0, 8)}
                     </span>
                     <span className={`text-xs font-semibold px-2 py-1 rounded flex items-center gap-1.5 uppercase ${incident.report?.type === "violent"
                         ? "bg-red-500/15 text-red-500"
@@ -61,11 +73,9 @@ export default function IncidentDetailsPanel({ incident, onApprove, onReject }: 
                 </span>
             </div>
 
-            {/* SCROLLABLE BODY */}
             <div className="flex-1 overflow-y-auto p-6">
                 <div className="max-w-4xl mx-auto space-y-6">
 
-                    {/* DESCRIPTION */}
                     <div>
                         <div className="flex items-center justify-between mb-3">
                             <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
@@ -83,7 +93,7 @@ export default function IncidentDetailsPanel({ incident, onApprove, onReject }: 
 
 
                     {/* MAP + EVIDENCE side by side */}
-                    <div className="grid grid-cols-2 gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         {/* Map card */}
                         <div className="rounded-xl border border-border overflow-hidden">
                             <div className="h-[250px]">

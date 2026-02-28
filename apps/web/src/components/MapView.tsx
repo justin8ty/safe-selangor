@@ -12,7 +12,7 @@ const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 const SELANGOR_BOUNDS = [101.3, 2.85, 102.0, 3.35];
 const EMPTY_SCORES: Record<string, { year: number; month: number; score: number }[]> = {};
 
-function buildRegionInfo(name: string, feedItems: FeedItem[], allMonthScores: Record<string, { year: number; month: number; score: number }[]>): RegionInfo {
+function buildRegionInfo(name: string, feedItems: FeedItem[], allMonthScores: Record<string, { year: number; month: number; score: number }[]>, districtCounts: Record<string, number>): RegionInfo {
     const districtItems = feedItems
         .filter(item => item.district === name)
         .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
@@ -20,7 +20,7 @@ function buildRegionInfo(name: string, feedItems: FeedItem[], allMonthScores: Re
     return {
         name,
         trendScores: allMonthScores[name] ?? [],
-        totalReports: districtItems.length,
+        totalReports: districtCounts[name] || 0,
         latestIncidents: districtItems.slice(0, 2).map(item => ({
             type: item.type ?? "unknown",
             time: item.createdAt ?? "",
@@ -36,9 +36,10 @@ interface MapViewProps {
     disableInteraction?: boolean;
     feedItems?: FeedItem[];
     allMonthScores?: Record<string, { year: number; month: number; score: number }[]>;
+    districtCounts?: Record<string, number>;
 }
 
-export default function MapView({ highlightDistrict, disableInteraction, feedItems, allMonthScores = EMPTY_SCORES }: MapViewProps) {
+export default function MapView({ highlightDistrict, disableInteraction, feedItems, allMonthScores = EMPTY_SCORES, districtCounts = {} }: MapViewProps) {
     const mapRef = useRef<MapRef>(null);
     const [rawGeoJSON, setRawGeoJSON] = useState<GeoJSON.FeatureCollection | null>(null);
     const [regionData, setRegionData] = useState<GeoJSON.FeatureCollection | null>(null);
@@ -287,7 +288,7 @@ export default function MapView({ highlightDistrict, disableInteraction, feedIte
 
                 {selectedRegion && (
                     <MapRegionPopup
-                        info={buildRegionInfo(selectedRegion, feedItems ?? [], allMonthScores)}
+                        info={buildRegionInfo(selectedRegion, feedItems ?? [], allMonthScores, districtCounts)}
                         onClose={() => setSelectedRegion(null)}
                         onIncidentClick={(inc) => setPopupIncident({
                             type: inc.type,
@@ -302,15 +303,15 @@ export default function MapView({ highlightDistrict, disableInteraction, feedIte
                 )}
 
                 {!disableInteraction && availableMonths.length > 0 && (
-                    <div className="absolute bottom-4 left-4 z-10 bg-background/90 backdrop-blur-md border border-border rounded-lg px-3 py-2 flex items-center gap-2">
-                        <span className="text-xs font-medium text-muted-foreground">Period:</span>
+                    <div className="absolute bottom-2 left-2 md:bottom-4 md:left-4 z-10 bg-background/90 backdrop-blur-md border border-border rounded-lg px-2 py-1.5 md:px-3 md:py-2 flex items-center gap-1 md:gap-2 shadow-md">
+                        <span className="text-[10px] md:text-xs font-medium text-muted-foreground">Period:</span>
                         <select
                             value={`${selectedMonth.year}-${selectedMonth.month}`}
                             onChange={(e) => {
                                 const [y, m] = e.target.value.split("-").map(Number);
                                 setSelectedMonth({ year: y, month: m });
                             }}
-                            className="bg-transparent text-sm font-medium text-foreground border-none outline-none cursor-pointer"
+                            className="bg-transparent text-xs md:text-sm font-medium text-foreground border-none outline-none cursor-pointer"
                         >
                             {availableMonths.map(({ year, month }) => (
                                 <option key={`${year}-${month}`} value={`${year}-${month}`}>

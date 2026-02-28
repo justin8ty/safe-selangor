@@ -5,6 +5,7 @@ import { useState, useMemo } from "react";
 import IncidentDetailsPop, { Incident } from "./IncidentDetailsPop";
 import IncidentCard from "./IncidentCard";
 import { FeedItem } from "@/types";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface SidebarProps {
     feedItems: FeedItem[];
@@ -29,35 +30,44 @@ export default function Sidebar({ feedItems, allMonthScores }: SidebarProps) {
 
 
     return (
-        <div className="flex flex-col p-6 gap-6 h-full min-w-[300px]">
+        <div className="flex flex-col p-4 md:p-6 gap-4 md:gap-6 h-full w-full md:min-w-[300px]">
 
             <div className="rounded-lg border border-border p-4">
                 <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                     Current Month Safety Score
-                    <div className="relative group">
-                        <Info className="text-muted-foreground cursor-help" size={14} />
-                        <div className="absolute left-0 top-full mt-2 hidden group-hover:block w-52 bg-popover border border-border rounded-lg p-3 shadow-xl z-50 text-xs font-normal normal-case tracking-normal">
-                            <p className="text-muted-foreground mb-2">Average safety score across all districts for the latest month.</p>
-                            <div className="flex flex-col gap-1.5">
-                                <div className="flex items-center gap-2">
-                                    <span className="w-3 h-3 rounded-sm" style={{ background: "#1cfa2f" }} />
-                                    <span className="text-foreground">85-100: Safe</span>
+                    <TooltipProvider delayDuration={100}>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Info className="text-muted-foreground cursor-help" size={14} />
+                            </TooltipTrigger>
+                            <TooltipContent
+                                side="right"
+                                align="start"
+                                className="w-52 p-3 font-normal tracking-normal shadow-xl border-border bg-white text-black"
+                                sideOffset={12}
+                            >
+                                <p className="text-gray-600 mb-2">Average safety score across all districts for the latest month.</p>
+                                <div className="flex flex-col gap-1.5">
+                                    <div className="flex items-center gap-2">
+                                        <span className="shrink-0 w-3 h-3 rounded-sm" style={{ background: "#1cfa2f" }} />
+                                        <span className="text-black">85-100: Safe</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="shrink-0 w-3 h-3 rounded-sm" style={{ background: "#ddfe20" }} />
+                                        <span className="text-black">70-84: Moderate</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="shrink-0 w-3 h-3 rounded-sm" style={{ background: "#fa7b19" }} />
+                                        <span className="text-black">40-69: Caution</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="shrink-0 w-3 h-3 rounded-sm" style={{ background: "#ff2a2a" }} />
+                                        <span className="text-black">0-39: Dangerous</span>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="w-3 h-3 rounded-sm" style={{ background: "#ddfe20" }} />
-                                    <span className="text-foreground">70-84: Moderate</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="w-3 h-3 rounded-sm" style={{ background: "#fa7b19" }} />
-                                    <span className="text-foreground">40-69: Caution</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="w-3 h-3 rounded-sm" style={{ background: "#ff2a2a" }} />
-                                    <span className="text-foreground">0-39: Dangerous</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                 </div>
                 <p className={`text-3xl font-bold mt-2 ${overallScore === null ? "text-muted-foreground"
                     : overallScore >= 85 ? "text-green-500"
@@ -69,31 +79,35 @@ export default function Sidebar({ feedItems, allMonthScores }: SidebarProps) {
                 </p>
             </div>
 
+            <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                    Incident Feed
+                </div>
+                <div className="flex-1 flex flex-col gap-3 overflow-y-auto pr-1">
+                    {incidents.map((incident) => (
+                        <IncidentCard
+                            key={incident.reportId}
+                            type={incident.type}
+                            description={incident.description}
+                            district={incident.district}
+                            state={incident.state}
+                            landmarkLabel={incident.landmarkLabel ?? null}
+                            aiConfidence={incident.aiConfidence ?? null}
+                            time={incident.createdAt}
+                            onClick={() => setSelectedIncident({
+                                type: incident.type || "unknown",
+                                location: `${incident.district ?? "Unknown"}${incident.state ? `, ${incident.state}` : ""}`,
+                                description: incident.description || "No description provided.",
+                                time: incident.createdAt ? new Date(incident.createdAt).toLocaleString() : "",
+                                mediaKey: incident.mediaKey,
+                                mediaKeys: incident.mediaKeys ?? (incident.mediaKey ? [incident.mediaKey] : []),
+                                landmarkLabel: incident.landmarkLabel ?? null,
+                                aiConfidence: incident.aiConfidence ?? null,
+                            })}
 
-            <div className="flex-1 flex flex-col gap-3 overflow-y-auto">
-                {incidents.map((incident) => (
-                    <IncidentCard
-                        key={incident.reportId}
-                        type={incident.type}
-                        description={incident.description}
-                        district={incident.district}
-                        state={incident.state}
-                        landmarkLabel={incident.landmarkLabel ?? null}
-                        aiConfidence={incident.aiConfidence ?? null}
-                        time={incident.createdAt}
-                        onClick={() => setSelectedIncident({
-                            type: incident.type || "unknown",
-                            location: `${incident.district ?? "Unknown"}${incident.state ? `, ${incident.state}` : ""}`,
-                            description: incident.description || "No description provided.",
-                            time: incident.createdAt ? new Date(incident.createdAt).toLocaleString() : "",
-                            mediaKey: incident.mediaKey,
-                            mediaKeys: incident.mediaKeys ?? (incident.mediaKey ? [incident.mediaKey] : []),
-                            landmarkLabel: incident.landmarkLabel ?? null,
-                            aiConfidence: incident.aiConfidence ?? null,
-                        })}
-
-                    />
-                ))}
+                        />
+                    ))}
+                </div>
             </div>
 
             <IncidentDetailsPop

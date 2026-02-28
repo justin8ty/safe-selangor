@@ -31,7 +31,7 @@ export default function MapRegionPopup({ info, onClose, onIncidentClick }: MapRe
     const trendColor = trendUp ? "#22c55e" : "#ef4444";
 
     return (
-        <div className="absolute top-4 left-4 z-10 w-80 bg-background/95 backdrop-blur-md border border-border shadow-xl rounded-xl overflow-hidden animate-in fade-in slide-in-from-left-4 duration-300">
+        <div className="absolute z-50 bg-background/95 backdrop-blur-md border border-border shadow-xl rounded-xl overflow-hidden animate-in fade-in duration-300 w-[90%] top-4 left-1/2 -translate-x-1/2 slide-in-from-top-4 sm:w-80 sm:top-4 sm:left-4 sm:translate-x-0 sm:slide-in-from-left-4">
             <div className="p-4 border-b border-border bg-muted/20 flex items-center justify-between">
                 <h3 className="font-bold text-lg text-foreground">{info.name}</h3>
                 <button
@@ -45,7 +45,7 @@ export default function MapRegionPopup({ info, onClose, onIncidentClick }: MapRe
             <div className="px-4 pt-3">
                 <div className="flex items-center gap-2">
                     <span className="text-2xl font-bold text-foreground">{info.totalReports}</span>
-                    <span className="text-xs text-muted-foreground uppercase tracking-wide">Reports</span>
+                    <span className="text-xs text-muted-foreground uppercase tracking-wide">Total Reports</span>
                 </div>
             </div>
 
