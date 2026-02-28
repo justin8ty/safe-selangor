@@ -22,6 +22,7 @@ export async function moderationRoutes(app: FastifyInstance): Promise<void> {
           "id,user_id,type,description,date,status,ai_confidence,created_at,district,state,landmark_label",
         )
         .eq("status", "needs_moderator")
+        .not("description", "is", null)
         .order("created_at", { ascending: false })
         .limit(50);
 
