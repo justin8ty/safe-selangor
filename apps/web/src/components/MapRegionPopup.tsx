@@ -11,6 +11,7 @@ export interface RegionInfo {
         time: string;
         description: string;
         mediaKey: string | null;
+        aiConfidence: number | null;
     }[];
 }
 

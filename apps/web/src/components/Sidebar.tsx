@@ -1,42 +1,74 @@
 "use client";
 
 import { Info } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import IncidentDetailsPop, { Incident } from "./IncidentDetailsPop";
 import IncidentCard from "./IncidentCard";
-import { supabase } from "@/lib/supabase";
 import { FeedItem } from "@/types";
-
-const crimeIndex = 52000;
 
 interface SidebarProps {
     feedItems: FeedItem[];
+    allMonthScores: Record<string, { year: number; month: number; score: number }[]>;
 }
 
-export default function Sidebar({ feedItems }: SidebarProps) {
+export default function Sidebar({ feedItems, allMonthScores }: SidebarProps) {
     const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
     const incidents = feedItems;
 
-    useEffect(() => {
-        supabase.auth.getSession().then(({ data }) => {
-            console.log("Session:", data.session);
-            console.log("User:", data.session?.user);
-            console.log("Token:", data.session?.access_token);
-        });
-    }, []);
+    const overallScore = useMemo(() => {
+        const allScores = Object.values(allMonthScores);
+        if (allScores.length === 0) return null;
+        const flat = allScores.flat();
+        const latest = flat.reduce((best, s) =>
+            s.year > best.year || (s.year === best.year && s.month > best.month) ? s : best
+            , flat[0]);
+        const latestScores = flat.filter(s => s.year === latest.year && s.month === latest.month);
+        const avg = latestScores.reduce((sum, s) => sum + s.score, 0) / latestScores.length;
+        return Math.round(avg * 100) / 100;
+    }, [allMonthScores]);
+
 
     return (
         <div className="flex flex-col p-6 gap-6 h-full min-w-[300px]">
 
             <div className="rounded-lg border border-border p-4">
                 <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Current Crime Index
-                    <Info className="text-muted-foreground cursor-help" size={14} />
+                    Current Month Safety Score
+                    <div className="relative group">
+                        <Info className="text-muted-foreground cursor-help" size={14} />
+                        <div className="absolute left-0 top-full mt-2 hidden group-hover:block w-52 bg-popover border border-border rounded-lg p-3 shadow-xl z-50 text-xs font-normal normal-case tracking-normal">
+                            <p className="text-muted-foreground mb-2">Average safety score across all districts for the latest month.</p>
+                            <div className="flex flex-col gap-1.5">
+                                <div className="flex items-center gap-2">
+                                    <span className="w-3 h-3 rounded-sm" style={{ background: "#1cfa2f" }} />
+                                    <span className="text-foreground">85-100: Safe</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="w-3 h-3 rounded-sm" style={{ background: "#ddfe20" }} />
+                                    <span className="text-foreground">70-84: Moderate</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="w-3 h-3 rounded-sm" style={{ background: "#fa7b19" }} />
+                                    <span className="text-foreground">40-69: Caution</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="w-3 h-3 rounded-sm" style={{ background: "#ff2a2a" }} />
+                                    <span className="text-foreground">0-39: Dangerous</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <p className="text-3xl font-bold text-primary mt-2">
-                    {crimeIndex.toLocaleString()}
+                <p className={`text-3xl font-bold mt-2 ${overallScore === null ? "text-muted-foreground"
+                    : overallScore >= 85 ? "text-green-500"
+                        : overallScore >= 70 ? "text-yellow-400"
+                            : overallScore >= 40 ? "text-orange-500"
+                                : "text-red-500"
+                    }`}>
+                    {overallScore !== null ? overallScore.toFixed(2) : "-"}
                 </p>
             </div>
+
 
             <div className="flex-1 flex flex-col gap-3 overflow-y-auto">
                 {incidents.map((incident) => (

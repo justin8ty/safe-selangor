@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -26,18 +27,15 @@ export default function LoginPage() {
 
     const { mutate: login, isPending } = useMutation({
         mutationFn: () => loginUser({ email, password }),
-        onSuccess: async (data) => {
-            await supabase.auth.setSession({
+        onSuccess: (data) => {
+            supabase.auth.setSession({
                 access_token: data.accessToken,
                 refresh_token: data.refreshToken,
             });
-            router.push("/");
+            window.location.href = "/";
         },
         onError: (error: unknown) =>
-            console.log(
-                "Login failed:",
-                error instanceof Error ? error.message : String(error)
-            ),
+            toast.error(error instanceof Error ? error.message : "Login failed")
     });
 
     return (

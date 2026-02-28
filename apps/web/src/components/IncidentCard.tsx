@@ -74,12 +74,12 @@ export default function IncidentCard({
                 </span>
             )}
 
-            {landmarkLabel && (
+            {/* {landmarkLabel && (
                 <span className="text-xs text-muted-foreground mt-1 flex items-center gap-1 line-clamp-1">
                     <Landmark size={12} />
                     Near {landmarkLabel}
                 </span>
-            )}
+            )} */}
         </div>
     );
 }

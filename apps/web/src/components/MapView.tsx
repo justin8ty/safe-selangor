@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 const SELANGOR_BOUNDS = [101.3, 2.85, 102.0, 3.35];
+const EMPTY_SCORES: Record<string, { year: number; month: number; score: number }[]> = {};
 
 function buildRegionInfo(name: string, feedItems: FeedItem[], allMonthScores: Record<string, { year: number; month: number; score: number }[]>): RegionInfo {
     const districtItems = feedItems
@@ -24,7 +25,8 @@ function buildRegionInfo(name: string, feedItems: FeedItem[], allMonthScores: Re
             type: item.type ?? "unknown",
             time: item.createdAt ?? "",
             description: item.description ?? "No description",
-            mediaKey: item.mediaKey ?? null
+            mediaKey: item.mediaKey ?? null,
+            aiConfidence: item.aiConfidence ?? null
         })),
     };
 }
@@ -33,9 +35,10 @@ interface MapViewProps {
     highlightDistrict?: string;
     disableInteraction?: boolean;
     feedItems?: FeedItem[];
+    allMonthScores?: Record<string, { year: number; month: number; score: number }[]>;
 }
 
-export default function MapView({ highlightDistrict, disableInteraction, feedItems }: MapViewProps) {
+export default function MapView({ highlightDistrict, disableInteraction, feedItems, allMonthScores = EMPTY_SCORES }: MapViewProps) {
     const mapRef = useRef<MapRef>(null);
     const [rawGeoJSON, setRawGeoJSON] = useState<GeoJSON.FeatureCollection | null>(null);
     const [regionData, setRegionData] = useState<GeoJSON.FeatureCollection | null>(null);
@@ -45,35 +48,7 @@ export default function MapView({ highlightDistrict, disableInteraction, feedIte
     const [popupIncident, setPopupIncident] = useState<Incident | null>(null);
     const [markers, setMarkers] = useState<{ report_id: string; lat: number; lng: number }[]>([]);
     const [safetyScores, setSafetyScores] = useState<Record<string, number>>({});
-    const [availableMonths, setAvailableMonths] = useState<{ year: number; month: number }[]>([]);
     const [selectedMonth, setSelectedMonth] = useState<{ year: number; month: number }>({ year: 2026, month: 2 });
-    // After the existing state declarations (~line 49)
-    const [allMonthScores, setAllMonthScores] = useState<
-        Record<string, { year: number; month: number; score: number }[]>
-    >({});
-
-    // New useEffect — fetch ALL months
-    useEffect(() => {
-        if (disableInteraction) return;
-        supabase
-            .from("current_live_statistics")
-            .select("district, score, year, month")
-            .then(({ data }) => {
-                if (data) {
-                    const grouped: Record<string, { year: number; month: number; score: number }[]> = {};
-                    data.forEach((r) => {
-                        if (!grouped[r.district]) grouped[r.district] = [];
-                        grouped[r.district].push({ year: r.year, month: r.month, score: r.score });
-                    });
-                    // Sort chronologically
-                    Object.values(grouped).forEach((arr) =>
-                        arr.sort((a, b) => a.year - b.year || a.month - b.month)
-                    );
-                    setAllMonthScores(grouped);
-                }
-            });
-    }, []);
-
 
     useEffect(() => {
         fetch("/map.geojson")
@@ -97,42 +72,30 @@ export default function MapView({ highlightDistrict, disableInteraction, feedIte
     }, [rawGeoJSON, safetyScores]);
 
     useEffect(() => {
-        supabase
-            .from("current_live_statistics")
-            .select("year, month")
-            .then(({ data }) => {
-                if (data) {
-                    const seen = new Set<string>();
-                    const unique: { year: number; month: number }[] = [];
-                    for (const r of data) {
-                        const key = `${r.year}-${r.month}`;
-                        if (!seen.has(key)) {
-                            seen.add(key);
-                            unique.push({ year: Number(r.year), month: Number(r.month) });
-                        }
-                    }
-                    unique.sort((a, b) => a.year - b.year || a.month - b.month);
-                    setAvailableMonths(unique);
-                    if (unique.length) setSelectedMonth(unique[unique.length - 1]);
-                }
-            });
-    }, []);
+        if (disableInteraction) return;
+        const scores: Record<string, number> = {};
+        Object.entries(allMonthScores).forEach(([district, arr]) => {
+            const match = arr.find(s => s.year === selectedMonth.year && s.month === selectedMonth.month);
+            if (match) scores[district] = match.score;
+        });
+        setSafetyScores(scores);
+    }, [selectedMonth, allMonthScores, disableInteraction]);
+
+    const availableMonths = useMemo(() => {
+        const seen = new Set<string>();
+        const unique: { year: number; month: number }[] = [];
+        Object.values(allMonthScores).flat().forEach((s) => {
+            const key = `${s.year}-${s.month}`;
+            if (!seen.has(key)) { seen.add(key); unique.push({ year: s.year, month: s.month }); }
+        });
+        return unique.sort((a, b) => a.year - b.year || a.month - b.month);
+    }, [allMonthScores]);
 
     useEffect(() => {
-        if (disableInteraction) return;
-        supabase
-            .from("current_live_statistics")
-            .select("district, score")
-            .eq("year", selectedMonth.year)
-            .eq("month", selectedMonth.month)
-            .then(({ data }) => {
-                if (data) {
-                    const scores: Record<string, number> = {};
-                    data.forEach(r => { scores[r.district] = r.score; });
-                    setSafetyScores(scores);
-                }
-            });
-    }, [selectedMonth]);
+        if (availableMonths.length) setSelectedMonth(availableMonths[availableMonths.length - 1]);
+    }, [availableMonths]);
+
+
 
     useEffect(() => {
         if (disableInteraction) return;
@@ -333,7 +296,7 @@ export default function MapView({ highlightDistrict, disableInteraction, feedIte
                             time: new Date(inc.time).toLocaleString(),
                             mediaKey: inc.mediaKey,
                             landmarkLabel: null,
-                            aiConfidence: null,
+                            aiConfidence: inc.aiConfidence ?? null,
                         })}
                     />
                 )}
