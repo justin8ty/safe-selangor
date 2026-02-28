@@ -10,6 +10,13 @@ import { useRealTime } from "@/hooks/useRealTime";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 
+const DISTRICTS = [
+  "Brickfields", "Cheras", "Dang Wangi", "Sentul",
+  "W.P. Putrajaya", "Wangsa Maju", "Ampang Jaya", "Gombak",
+  "Kajang", "Klang Selatan", "Klang Utara", "Petaling Jaya",
+  "Sepang", "Serdang", "Shah Alam", "Subang Jaya"
+];
+
 export default function Home() {
   useRealTime([["feed"]])
 
@@ -44,6 +51,24 @@ export default function Home() {
   });
   const allMonthScores = scoresData ?? {};
 
+  const { data: districtCounts } = useQuery({
+    queryKey: ["districtReportCounts"],
+    queryFn: async () => {
+      const counts: Record<string, number> = {};
+      const promises = DISTRICTS.map(async (d) => {
+        const { count } = await supabase
+          .from("reports")
+          .select("*", { count: "exact", head: true })
+          .eq("district", d)
+          .eq("status", "approved");
+        counts[d] = count || 0;
+      });
+      await Promise.all(promises);
+      return counts;
+    },
+    enabled: !!user,
+  });
+
   return (
     <ResizablePanelGroup
       orientation="horizontal"
@@ -56,7 +81,7 @@ export default function Home() {
       <ResizableHandle withHandle />
 
       <ResizablePanel defaultSize="70%">
-        <MapView feedItems={incidents} allMonthScores={allMonthScores} />
+        <MapView feedItems={incidents} allMonthScores={allMonthScores} districtCounts={districtCounts || {}} />
       </ResizablePanel>
     </ResizablePanelGroup>
   );

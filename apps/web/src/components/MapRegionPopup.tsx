@@ -45,7 +45,7 @@ export default function MapRegionPopup({ info, onClose, onIncidentClick }: MapRe
             <div className="px-4 pt-3">
                 <div className="flex items-center gap-2">
                     <span className="text-2xl font-bold text-foreground">{info.totalReports}</span>
-                    <span className="text-xs text-muted-foreground uppercase tracking-wide">Reports</span>
+                    <span className="text-xs text-muted-foreground uppercase tracking-wide">Total Reports</span>
                 </div>
             </div>
 

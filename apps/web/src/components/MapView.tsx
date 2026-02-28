@@ -12,7 +12,7 @@ const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 const SELANGOR_BOUNDS = [101.3, 2.85, 102.0, 3.35];
 const EMPTY_SCORES: Record<string, { year: number; month: number; score: number }[]> = {};
 
-function buildRegionInfo(name: string, feedItems: FeedItem[], allMonthScores: Record<string, { year: number; month: number; score: number }[]>): RegionInfo {
+function buildRegionInfo(name: string, feedItems: FeedItem[], allMonthScores: Record<string, { year: number; month: number; score: number }[]>, districtCounts: Record<string, number>): RegionInfo {
     const districtItems = feedItems
         .filter(item => item.district === name)
         .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
@@ -20,7 +20,7 @@ function buildRegionInfo(name: string, feedItems: FeedItem[], allMonthScores: Re
     return {
         name,
         trendScores: allMonthScores[name] ?? [],
-        totalReports: districtItems.length,
+        totalReports: districtCounts[name] || 0,
         latestIncidents: districtItems.slice(0, 2).map(item => ({
             type: item.type ?? "unknown",
             time: item.createdAt ?? "",
@@ -36,9 +36,10 @@ interface MapViewProps {
     disableInteraction?: boolean;
     feedItems?: FeedItem[];
     allMonthScores?: Record<string, { year: number; month: number; score: number }[]>;
+    districtCounts?: Record<string, number>;
 }
 
-export default function MapView({ highlightDistrict, disableInteraction, feedItems, allMonthScores = EMPTY_SCORES }: MapViewProps) {
+export default function MapView({ highlightDistrict, disableInteraction, feedItems, allMonthScores = EMPTY_SCORES, districtCounts = {} }: MapViewProps) {
     const mapRef = useRef<MapRef>(null);
     const [rawGeoJSON, setRawGeoJSON] = useState<GeoJSON.FeatureCollection | null>(null);
     const [regionData, setRegionData] = useState<GeoJSON.FeatureCollection | null>(null);
@@ -287,7 +288,7 @@ export default function MapView({ highlightDistrict, disableInteraction, feedIte
 
                 {selectedRegion && (
                     <MapRegionPopup
-                        info={buildRegionInfo(selectedRegion, feedItems ?? [], allMonthScores)}
+                        info={buildRegionInfo(selectedRegion, feedItems ?? [], allMonthScores, districtCounts)}
                         onClose={() => setSelectedRegion(null)}
                         onIncidentClick={(inc) => setPopupIncident({
                             type: inc.type,
