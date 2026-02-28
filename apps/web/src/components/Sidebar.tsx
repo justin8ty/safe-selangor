@@ -30,7 +30,7 @@ export default function Sidebar({ feedItems, allMonthScores }: SidebarProps) {
 
 
     return (
-        <div className="flex flex-col p-6 gap-6 h-full min-w-[300px]">
+        <div className="flex flex-col p-4 md:p-6 gap-4 md:gap-6 h-full w-full md:min-w-[300px]">
 
             <div className="rounded-lg border border-border p-4">
                 <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -79,31 +79,35 @@ export default function Sidebar({ feedItems, allMonthScores }: SidebarProps) {
                 </p>
             </div>
 
+            <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                    Incident Feed
+                </div>
+                <div className="flex-1 flex flex-col gap-3 overflow-y-auto pr-1">
+                    {incidents.map((incident) => (
+                        <IncidentCard
+                            key={incident.reportId}
+                            type={incident.type}
+                            description={incident.description}
+                            district={incident.district}
+                            state={incident.state}
+                            landmarkLabel={incident.landmarkLabel ?? null}
+                            aiConfidence={incident.aiConfidence ?? null}
+                            time={incident.createdAt}
+                            onClick={() => setSelectedIncident({
+                                type: incident.type || "unknown",
+                                location: `${incident.district ?? "Unknown"}${incident.state ? `, ${incident.state}` : ""}`,
+                                description: incident.description || "No description provided.",
+                                time: incident.createdAt ? new Date(incident.createdAt).toLocaleString() : "",
+                                mediaKey: incident.mediaKey,
+                                mediaKeys: incident.mediaKeys ?? (incident.mediaKey ? [incident.mediaKey] : []),
+                                landmarkLabel: incident.landmarkLabel ?? null,
+                                aiConfidence: incident.aiConfidence ?? null,
+                            })}
 
-            <div className="flex-1 flex flex-col gap-3 overflow-y-auto">
-                {incidents.map((incident) => (
-                    <IncidentCard
-                        key={incident.reportId}
-                        type={incident.type}
-                        description={incident.description}
-                        district={incident.district}
-                        state={incident.state}
-                        landmarkLabel={incident.landmarkLabel ?? null}
-                        aiConfidence={incident.aiConfidence ?? null}
-                        time={incident.createdAt}
-                        onClick={() => setSelectedIncident({
-                            type: incident.type || "unknown",
-                            location: `${incident.district ?? "Unknown"}${incident.state ? `, ${incident.state}` : ""}`,
-                            description: incident.description || "No description provided.",
-                            time: incident.createdAt ? new Date(incident.createdAt).toLocaleString() : "",
-                            mediaKey: incident.mediaKey,
-                            mediaKeys: incident.mediaKeys ?? (incident.mediaKey ? [incident.mediaKey] : []),
-                            landmarkLabel: incident.landmarkLabel ?? null,
-                            aiConfidence: incident.aiConfidence ?? null,
-                        })}
-
-                    />
-                ))}
+                        />
+                    ))}
+                </div>
             </div>
 
             <IncidentDetailsPop

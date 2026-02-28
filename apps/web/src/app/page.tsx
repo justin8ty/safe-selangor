@@ -70,19 +70,38 @@ export default function Home() {
   });
 
   return (
-    <ResizablePanelGroup
-      orientation="horizontal"
-      className="flex-1 overflow-hidden"
-    >
-      <ResizablePanel defaultSize="30%">
-        <Sidebar feedItems={incidents} allMonthScores={allMonthScores} />
-      </ResizablePanel>
+    <>
+      {/* Mobile Layout */}
+      <div className="flex flex-col flex-1 overflow-hidden md:hidden">
+        <div className="h-[45vh] min-h-[350px] shrink-0 border-b border-border">
+          <MapView
+            feedItems={incidents}
+            allMonthScores={allMonthScores}
+            districtCounts={districtCounts || {}}
+          />
+        </div>
+        <div className="flex-1 overflow-y-auto bg-background">
+          <Sidebar feedItems={incidents} allMonthScores={allMonthScores} />
+        </div>
+      </div>
 
-      <ResizableHandle withHandle />
+      {/* DESKTOP LAYOUT*/}
+      <div className="hidden md:flex flex-1 overflow-hidden">
+        <ResizablePanelGroup
+          orientation="horizontal"
+          className="flex-1 overflow-hidden w-full"
+        >
+          <ResizablePanel defaultSize="30%">
+            <Sidebar feedItems={incidents} allMonthScores={allMonthScores} />
+          </ResizablePanel>
 
-      <ResizablePanel defaultSize="70%">
-        <MapView feedItems={incidents} allMonthScores={allMonthScores} districtCounts={districtCounts || {}} />
-      </ResizablePanel>
-    </ResizablePanelGroup>
+          <ResizableHandle withHandle />
+
+          <ResizablePanel defaultSize="70%">
+            <MapView feedItems={incidents} allMonthScores={allMonthScores} districtCounts={districtCounts || {}} />
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </div>
+    </>
   );
 }
