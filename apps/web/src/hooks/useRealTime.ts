@@ -3,6 +3,8 @@ import { supabase } from "@/lib/supabase";
 import { queryClient } from "@/lib/client";
 
 export function useRealTime(queryKeys: string[][], enabled: boolean = true) {
+    const keysStr = JSON.stringify(queryKeys);
+
     useEffect(() => {
         if (!enabled) return;
 
@@ -14,7 +16,8 @@ export function useRealTime(queryKeys: string[][], enabled: boolean = true) {
                 table: "reports",
             }, (payload) => {
                 console.log("Realtime event:", payload);
-                queryKeys.forEach(key => {
+                const parsedKeys = JSON.parse(keysStr);
+                parsedKeys.forEach((key: string[]) => {
                     queryClient.invalidateQueries({ queryKey: key });
                 });
             })
@@ -24,5 +27,5 @@ export function useRealTime(queryKeys: string[][], enabled: boolean = true) {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [queryKeys, enabled]);
+    }, [keysStr, enabled]);
 }

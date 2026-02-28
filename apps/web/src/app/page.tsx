@@ -16,11 +16,10 @@ const DISTRICTS = [
   "Kajang", "Klang Selatan", "Klang Utara", "Petaling Jaya",
   "Sepang", "Serdang", "Shah Alam", "Subang Jaya"
 ];
-
 export default function Home() {
-  useRealTime([["feed"], ["safetyScores"], ["districtReportCounts"]]);
-
   const { user } = useAuth();
+
+  useRealTime([["feed"], ["safetyScores"], ["districtReportCounts"]], !!user);
 
   const { data } = useQuery({
     queryKey: ["feed"],
