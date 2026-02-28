@@ -94,24 +94,17 @@ export default function IncidentDetailsPop({ open, onClose, incident }: Incident
 
 
                     {/* Location & Coordinates Row */}
-                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mb-3">
-                        <MapPin className="w-4 h-4 text-cyan-500" />
-                        <span>{incident.location}</span>
-                        {incident.landmarkLabel ? (
-                            <>
-                                <span className="opacity-50">•</span>
-                                <span className="inline-flex items-center gap-1">
-                                    <Landmark className="w-4 h-4 text-cyan-500" />
-                                    Near {incident.landmarkLabel}
-                                </span>
-                            </>
-                        ) : null}
-                        {/* {incident.coordinates && (
-                            <>
-                                <span className="opacity-50">•</span>
-                                <span className="font-mono text-xs">Lat: {incident.coordinates.lat.toFixed(4)}, Lng: {incident.coordinates.lng.toFixed(4)}</span>
-                            </>
-                        )} */}
+                    <div className="flex flex-col gap-1.5 text-sm text-muted-foreground mb-3">
+                        <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-cyan-500 shrink-0" />
+                            <span>{incident.location}</span>
+                        </div>
+                        {incident.landmarkLabel && (
+                            <div className="flex items-center gap-2">
+                                <Landmark className="w-4 h-4 text-cyan-500 shrink-0" />
+                                <span>Near {incident.landmarkLabel}</span>
+                            </div>
+                        )}
                     </div>
                 </div>
 

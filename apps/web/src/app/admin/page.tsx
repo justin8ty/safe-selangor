@@ -47,6 +47,7 @@ export default function AdminPage() {
                         incidents={items}
                         selectedIncident={selectedIncident}
                         onSelectIncident={setSelectedIncident}
+                        isLoading={isLoading}
                     />
                 </ResizablePanel>
 

@@ -30,18 +30,21 @@ export default function SignupPage() {
 
     const { mutate: register, isPending } = useMutation({
         mutationFn: () => {
+            if (password.length < 6) {
+                throw new Error("Password must be at least 6 characters");
+            }
             if (password !== confirmPassword) {
                 throw new Error("Passwords do not match");
             }
 
             return registerUser({ email, password });
         },
-        onSuccess: async (data) => {
-            await supabase.auth.setSession({
+        onSuccess: (data) => {
+            supabase.auth.setSession({
                 access_token: data.accessToken,
                 refresh_token: data.refreshToken,
             });
-            router.push("/");
+            window.location.href = "/login";
         },
         onError: (error: unknown) => {
             if (error instanceof Error && error.message === "Passwords do not match") {
