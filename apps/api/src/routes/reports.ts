@@ -84,8 +84,19 @@ export async function reportsRoutes(app: FastifyInstance): Promise<void> {
           lng: parsed.data.lng,
         });
 
+      const { error: locErr2 } = await supabase
+        .from("stats_jobs")
+        .insert({
+          report_id: reportId,
+          status : "pending"
+        });
+
       if (locErr) {
         req.log.error({ error: locErr }, "Failed to store private location");
+        return reply.status(500).send({ error: "Failed to store location" });
+      }
+      if (locErr2) {
+        req.log.error({ error: locErr }, "Failed to activate worker");
         return reply.status(500).send({ error: "Failed to store location" });
       }
 
