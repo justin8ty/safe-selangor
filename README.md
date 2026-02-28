@@ -100,7 +100,7 @@ The goal is to provide transparent, data-driven safety insights that support bet
 - Automatatically runs every few hours and update database
 
 ## Frontend Design
-
+- Design: [View Figma Prototype](https://www.figma.com/design/3ASVNOGa8cVPh3TfzuAmSP/Safe-Selangor?node-id=0-1&t=gZz7AEHKTinA2j3W-1)
 - Mapbox api to display heatmap
 - Nextjs framework
 - Uses shadcn for prebuilt components
