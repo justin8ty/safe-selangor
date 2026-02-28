@@ -1,6 +1,6 @@
 "use client";
 
-import { X, MapPin, Clock, ImageIcon, ShieldAlert, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, MapPin, Clock, ImageIcon, ShieldAlert, ChevronLeft, ChevronRight, Landmark, ShieldCheck, Sparkles } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useEffect, useMemo, useState } from "react";
 
@@ -11,6 +11,8 @@ export interface Incident {
     time: string;
     mediaKey: string | null;
     mediaKeys?: string[];
+    landmarkLabel?: string | null;
+    aiConfidence?: number | null;
 }
 
 interface IncidentDetailsPopProps {
@@ -27,23 +29,25 @@ function getMediaUrl(storageKey: string): string {
 }
 
 export default function IncidentDetailsPop({ open, onClose, incident }: IncidentDetailsPopProps) {
-    if (!open || !incident) return null;
+    const [activeIndex, setActiveIndex] = useState(0);
 
     const mediaKeys = useMemo(() => {
-        if (incident.mediaKeys?.length) return incident.mediaKeys;
-        if (incident.mediaKey) return [incident.mediaKey];
+        if (incident?.mediaKeys?.length) return incident.mediaKeys;
+        if (incident?.mediaKey) return [incident.mediaKey];
         return [];
-    }, [incident.mediaKey, incident.mediaKeys]);
-
-    const [activeIndex, setActiveIndex] = useState(0);
+    }, [incident?.mediaKey, incident?.mediaKeys]);
 
     useEffect(() => {
         setActiveIndex(0);
-    }, [incident]);
+    }, [open, incident?.mediaKey, incident?.mediaKeys]);
 
     const canPrev = activeIndex > 0;
     const canNext = activeIndex < mediaKeys.length - 1;
     const activeKey = mediaKeys[activeIndex] ?? null;
+
+    const isGeminiVerified = (incident?.aiConfidence ?? 0) >= 90;
+
+    if (!open || !incident) return null;
 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
@@ -73,8 +77,14 @@ export default function IncidentDetailsPop({ open, onClose, incident }: Incident
                                 }`} />
                             {incident.type ?? "Unknown"}
                         </span>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded bg-muted text-muted-foreground border border-border">
-                            Community Report
+                        <span
+                            className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded border border-border inline-flex items-center gap-1 ${isGeminiVerified
+                                ? "bg-cyan-500/10 text-cyan-500"
+                                : "bg-green-500/10 text-green-600"
+                                }`}
+                        >
+                            {isGeminiVerified ? <Sparkles className="w-3 h-3" /> : <ShieldCheck className="w-3 h-3" />}
+                            {isGeminiVerified ? "Gemini Verified" : "Moderator Verified"}
                         </span>
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                             <Clock className="w-3.5 h-3.5" />
@@ -87,6 +97,15 @@ export default function IncidentDetailsPop({ open, onClose, incident }: Incident
                     <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mb-3">
                         <MapPin className="w-4 h-4 text-cyan-500" />
                         <span>{incident.location}</span>
+                        {incident.landmarkLabel ? (
+                            <>
+                                <span className="opacity-50">•</span>
+                                <span className="inline-flex items-center gap-1">
+                                    <Landmark className="w-4 h-4 text-cyan-500" />
+                                    Near {incident.landmarkLabel}
+                                </span>
+                            </>
+                        ) : null}
                         {/* {incident.coordinates && (
                             <>
                                 <span className="opacity-50">•</span>

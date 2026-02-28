@@ -8,9 +8,12 @@ import { queryClient } from "@/lib/client";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import VerificationQueue from "../../components/VerificationQueue";
 import IncidentDetailsPanel from "../../components/IncidentDetailsPanel";
+import { useRealTime } from "@/hooks/useRealTime";
 
 export default function AdminPage() {
     const [selectedIncident, setSelectedIncident] = useState<ModerationQueueItem | null>(null);
+
+    useRealTime([["moderation-reports"]])
 
     const { data, isLoading } = useQuery({
         queryKey: ["moderation-reports"],

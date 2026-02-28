@@ -1,49 +1,30 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Map, { NavigationControl, Source, Layer, MapRef, type MapMouseEvent } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import MapRegionPopup, { RegionInfo } from "./MapRegionPopup";
 import { FeedItem } from "@/types";
-import { formatRelativeTime } from "@/lib/utils";
 import IncidentDetailsPop, { Incident } from "./IncidentDetailsPop";
+import { supabase } from "@/lib/supabase";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 const SELANGOR_BOUNDS = [101.3, 2.85, 102.0, 3.35];
 
-// --- TODO: replace ---
-const DEMO_CRIME_DATA: Record<string, number> = {
-    "Petaling Jaya": 1850,
-    "Shah Alam": 1200,
-    "Subang Jaya": 1600,
-    "Klang Utara": 0,
-    "Klang Selatan": 0,
-    "Sepang": 0,
-    "Putrajaya": 210,
-    "Gombak": 950,
-    "Ampang": 870,
-    "Cheras": 790,
-    "Kajang": 640,
-    "Serdang": 1000,
-    "Brickfields": 1000,
-    "Dang Wangi": 100,
-    "Sentul": 10,
-    "Wangsa Maju": 1
-};
-
-function buildRegionInfo(name: string, feedItems: FeedItem[]): RegionInfo {
+function buildRegionInfo(name: string, feedItems: FeedItem[], allMonthScores: Record<string, { year: number; month: number; score: number }[]>): RegionInfo {
     const districtItems = feedItems
         .filter(item => item.district === name)
         .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
 
     return {
         name,
-        crimeTrend: { change: "–", direction: "up", period: "Last 7 days" }, // TODO: change
+        trendScores: allMonthScores[name] ?? [],
         totalReports: districtItems.length,
-        latestIncidents: districtItems.slice(0, 3).map(item => ({
+        latestIncidents: districtItems.slice(0, 2).map(item => ({
             type: item.type ?? "unknown",
-            time: item.createdAt ? formatRelativeTime(item.createdAt) : "",
+            time: item.createdAt ?? "",
             description: item.description ?? "No description",
+            mediaKey: item.mediaKey ?? null
         })),
     };
 }
@@ -56,11 +37,114 @@ interface MapViewProps {
 
 export default function MapView({ highlightDistrict, disableInteraction, feedItems }: MapViewProps) {
     const mapRef = useRef<MapRef>(null);
-    const [viewState, setViewState] = useState({ longitude: 101.68, latitude: 3.07, zoom: 10 });
+    const [rawGeoJSON, setRawGeoJSON] = useState<GeoJSON.FeatureCollection | null>(null);
     const [regionData, setRegionData] = useState<GeoJSON.FeatureCollection | null>(null);
+    const [viewState, setViewState] = useState({ longitude: 101.68, latitude: 3.07, zoom: 10 });
     const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
     const [cursor, setCursor] = useState<string>('grab');
     const [popupIncident, setPopupIncident] = useState<Incident | null>(null);
+    const [markers, setMarkers] = useState<{ report_id: string; lat: number; lng: number }[]>([]);
+    const [safetyScores, setSafetyScores] = useState<Record<string, number>>({});
+    const [availableMonths, setAvailableMonths] = useState<{ year: number; month: number }[]>([]);
+    const [selectedMonth, setSelectedMonth] = useState<{ year: number; month: number }>({ year: 2026, month: 2 });
+    // After the existing state declarations (~line 49)
+    const [allMonthScores, setAllMonthScores] = useState<
+        Record<string, { year: number; month: number; score: number }[]>
+    >({});
+
+    // New useEffect — fetch ALL months
+    useEffect(() => {
+        if (disableInteraction) return;
+        supabase
+            .from("current_live_statistics")
+            .select("district, score, year, month")
+            .then(({ data }) => {
+                if (data) {
+                    const grouped: Record<string, { year: number; month: number; score: number }[]> = {};
+                    data.forEach((r) => {
+                        if (!grouped[r.district]) grouped[r.district] = [];
+                        grouped[r.district].push({ year: r.year, month: r.month, score: r.score });
+                    });
+                    // Sort chronologically
+                    Object.values(grouped).forEach((arr) =>
+                        arr.sort((a, b) => a.year - b.year || a.month - b.month)
+                    );
+                    setAllMonthScores(grouped);
+                }
+            });
+    }, []);
+
+
+    useEffect(() => {
+        fetch("/map.geojson")
+            .then((res) => res.json())
+            .then(setRawGeoJSON)
+            .catch(console.error);
+    }, []);
+
+    useEffect(() => {
+        if (!rawGeoJSON) return;
+        setRegionData({
+            ...rawGeoJSON,
+            features: rawGeoJSON.features.map((f) => ({
+                ...f,
+                properties: {
+                    ...f.properties,
+                    safetyScore: safetyScores[f.properties?.name] ?? null,
+                },
+            })),
+        } as GeoJSON.FeatureCollection);
+    }, [rawGeoJSON, safetyScores]);
+
+    useEffect(() => {
+        supabase
+            .from("current_live_statistics")
+            .select("year, month")
+            .then(({ data }) => {
+                if (data) {
+                    const seen = new Set<string>();
+                    const unique: { year: number; month: number }[] = [];
+                    for (const r of data) {
+                        const key = `${r.year}-${r.month}`;
+                        if (!seen.has(key)) {
+                            seen.add(key);
+                            unique.push({ year: Number(r.year), month: Number(r.month) });
+                        }
+                    }
+                    unique.sort((a, b) => a.year - b.year || a.month - b.month);
+                    setAvailableMonths(unique);
+                    if (unique.length) setSelectedMonth(unique[unique.length - 1]);
+                }
+            });
+    }, []);
+
+    useEffect(() => {
+        if (disableInteraction) return;
+        supabase
+            .from("current_live_statistics")
+            .select("district, score")
+            .eq("year", selectedMonth.year)
+            .eq("month", selectedMonth.month)
+            .then(({ data }) => {
+                if (data) {
+                    const scores: Record<string, number> = {};
+                    data.forEach(r => { scores[r.district] = r.score; });
+                    setSafetyScores(scores);
+                }
+            });
+    }, [selectedMonth]);
+
+    useEffect(() => {
+        if (disableInteraction) return;
+        supabase
+            .from("report_location_private")
+            .select("report_id, lat, lng")
+            .then(({ data, error }) => {
+                console.log("Markers:", data?.length, error);
+                if (data) setMarkers(data);
+            });
+    }, []);
+
 
     const handleMapClick = useCallback((event: MapMouseEvent) => {
         const feature = event.features && event.features[0];
@@ -92,26 +176,7 @@ export default function MapView({ highlightDistrict, disableInteraction, feedIte
         observer.observe(container);
     }, []);
 
-    useEffect(() => {
-        fetch("/map.geojson")
-            .then((res) => res.json())
-            .then((geojson: GeoJSON.FeatureCollection) => {
-                const merged = {
-                    ...geojson,
-                    features: geojson.features.map((f) => ({
-                        ...f,
-                        properties: {
-                            ...f.properties,
-                            crimeCount: DEMO_CRIME_DATA[f.properties?.name] ?? null,
-                        },
-                    })),
-                };
-                setRegionData(merged);
-            })
-            .catch(console.error);
 
-        // TODO: merge crime counts from backend
-    }, []);
 
     useEffect(() => {
         if (!highlightDistrict || !regionData) return;
@@ -141,112 +206,166 @@ export default function MapView({ highlightDistrict, disableInteraction, feedIte
     }, [highlightDistrict, regionData]);
 
     return (
-        <div className="relative w-full h-full">
-            <Map
-                ref={mapRef}
-                onLoad={handleMapLoad}
-                {...viewState}
-                onMove={(e) => setViewState(e.viewState)}
-                mapboxAccessToken={MAPBOX_TOKEN}
-                mapStyle="mapbox://styles/mapbox/dark-v11"
-                style={{ width: "100%", height: "100%" }}
-                maxBounds={[[SELANGOR_BOUNDS[0], SELANGOR_BOUNDS[1]], [SELANGOR_BOUNDS[2], SELANGOR_BOUNDS[3]]]}
-                minZoom={9}
-                maxZoom={18}
-                interactiveLayerIds={disableInteraction ? undefined : (regionData ? ["region-fill"] : undefined)}
-                onClick={handleMapClick}
-                cursor={disableInteraction ? "default" : cursor}
-                onMouseEnter={disableInteraction ? undefined : onMouseEnter}
-                onMouseLeave={disableInteraction ? undefined : onMouseLeave}
-            >
-                <NavigationControl position="top-right" />
+        <>
+            <div className="relative w-full h-full">
+                <Map
+                    ref={mapRef}
+                    onLoad={handleMapLoad}
+                    {...viewState}
+                    onMove={(e) => setViewState(e.viewState)}
+                    mapboxAccessToken={MAPBOX_TOKEN}
+                    mapStyle="mapbox://styles/mapbox/dark-v11"
+                    style={{ width: "100%", height: "100%" }}
+                    maxBounds={[[SELANGOR_BOUNDS[0], SELANGOR_BOUNDS[1]], [SELANGOR_BOUNDS[2], SELANGOR_BOUNDS[3]]]}
+                    minZoom={9}
+                    maxZoom={18}
+                    interactiveLayerIds={disableInteraction ? undefined : (regionData ? ["region-fill"] : undefined)}
+                    onClick={handleMapClick}
+                    cursor={disableInteraction ? "default" : cursor}
+                    onMouseEnter={disableInteraction ? undefined : onMouseEnter}
+                    onMouseLeave={disableInteraction ? undefined : onMouseLeave}
+                >
+                    <NavigationControl position="top-right" />
 
-                {regionData && (
-                    <Source id="region-zones" type="geojson" data={regionData}>
-                        <Layer
-                            id="region-fill"
-                            type="fill"
-                            paint={{
-                                "fill-color": highlightDistrict
-                                    ? "#1f1f29"
-                                    : [
-                                        "case",
-                                        ["==", ["get", "crimeCount"], null],
-                                        "#1f1f29",
-                                        [
-                                            "interpolate", ["linear"], ["get", "crimeCount"],
-                                            0, "#22c55e",
-                                            500, "#eab308",
-                                            1000, "#f97316",
-                                            2000, "#ef4444",
-                                        ],
-                                    ],
-                                "fill-opacity": highlightDistrict ? 0.3 : 0.5,
-                            }}
-                        />
-
-                        <Layer
-                            id="region-outline"
-                            type="line"
-                            paint={{
-                                "line-color": "#ffffff",
-                                "line-width": 1,
-                                "line-opacity": 0.4,
-                            }}
-                        />
-
-                        <Layer
-                            id="region-labels"
-                            type="symbol"
-                            layout={{
-                                "text-field": ["get", "name"],
-                                "text-size": 12,
-                                "text-anchor": "center",
-                                "text-justify": "center"
-                            }}
-                            paint={{
-                                "text-color": "#ffffff",
-                                "text-halo-color": "#000000",
-                                "text-halo-width": 2
-                            }}
-                        />
-
-                        {highlightDistrict && (
+                    {regionData && (
+                        <Source id="region-zones" type="geojson" data={regionData}>
                             <Layer
-                                id="region-highlight"
+                                id="region-fill"
                                 type="fill"
-                                filter={["==", ["get", "name"], highlightDistrict]}
                                 paint={{
-                                    "fill-color": "#f97316",
-                                    "fill-opacity": 0.6,
+                                    "fill-color": highlightDistrict
+                                        ? "#1f1f29"
+                                        : [
+                                            "case",
+                                            ["==", ["get", "safetyScore"], null],
+                                            "#1f1f29",
+                                            [
+                                                "step", ["get", "safetyScore"],
+                                                "#1f1f29",
+                                                0, "#ff2a2a",
+                                                40, "#fa7b19",
+                                                70, "#ddfe20",
+                                                85, "#1cfa2f",
+                                            ],
+                                        ],
+
+                                    "fill-opacity": highlightDistrict ? 0.3 : 0.6,
                                 }}
                             />
-                        )}
 
-                    </Source>
+                            <Layer
+                                id="region-outline"
+                                type="line"
+                                paint={{
+                                    "line-color": "#ffffff",
+                                    "line-width": 1,
+                                    "line-opacity": 0.4,
+                                }}
+                            />
+
+                            <Layer
+                                id="region-labels"
+                                type="symbol"
+                                layout={{
+                                    "text-field": ["get", "name"],
+                                    "text-size": 12,
+                                    "text-anchor": "center",
+                                    "text-justify": "center"
+                                }}
+                                paint={{
+                                    "text-color": "#ffffff",
+                                    "text-halo-color": "#000000",
+                                    "text-halo-width": 2
+                                }}
+                            />
+
+                            {highlightDistrict && (
+                                <Layer
+                                    id="region-highlight"
+                                    type="fill"
+                                    filter={["==", ["get", "name"], highlightDistrict]}
+                                    paint={{
+                                        "fill-color": "#f97316",
+                                        "fill-opacity": 0.6,
+                                    }}
+                                />
+                            )}
+                        </Source>
+                    )}
+
+                    {markers.length > 0 && (
+                        <Source
+                            id="incident-markers"
+                            type="geojson"
+                            data={{
+                                type: "FeatureCollection",
+                                features: markers.map(m => ({
+                                    type: "Feature" as const,
+                                    geometry: { type: "Point" as const, coordinates: [m.lng, m.lat] },
+                                    properties: { reportId: m.report_id },
+                                })),
+                            }}
+                        >
+                            <Layer
+                                id="incident-dots"
+                                type="circle"
+                                paint={{
+                                    "circle-radius": 6,
+                                    "circle-color": "#ef4444",
+                                    "circle-stroke-width": 2,
+                                    "circle-stroke-color": "#ffffff",
+                                    "circle-opacity": 0.8,
+                                }}
+                            />
+                        </Source>
+                    )}
+
+                </Map>
+
+                {selectedRegion && (
+                    <MapRegionPopup
+                        info={buildRegionInfo(selectedRegion, feedItems ?? [], allMonthScores)}
+                        onClose={() => setSelectedRegion(null)}
+                        onIncidentClick={(inc) => setPopupIncident({
+                            type: inc.type,
+                            location: selectedRegion,
+                            description: inc.description,
+                            time: new Date(inc.time).toLocaleString(),
+                            mediaKey: inc.mediaKey,
+                            landmarkLabel: null,
+                            aiConfidence: null,
+                        })}
+                    />
                 )}
-            </Map>
 
-            {selectedRegion && (
-                <MapRegionPopup
-                    info={buildRegionInfo(selectedRegion, feedItems ?? [])}
-                    onClose={() => setSelectedRegion(null)}
-                    onIncidentClick={(inc) => setPopupIncident({
-                        type: inc.type,
-                        location: selectedRegion,
-                        description: inc.description,
-                        time: inc.time,
-                        mediaKey: null,
-                        mediaKeys: [],
-                    })}
-                />
-            )}
+                {!disableInteraction && availableMonths.length > 0 && (
+                    <div className="absolute bottom-4 left-4 z-10 bg-background/90 backdrop-blur-md border border-border rounded-lg px-3 py-2 flex items-center gap-2">
+                        <span className="text-xs font-medium text-muted-foreground">Period:</span>
+                        <select
+                            value={`${selectedMonth.year}-${selectedMonth.month}`}
+                            onChange={(e) => {
+                                const [y, m] = e.target.value.split("-").map(Number);
+                                setSelectedMonth({ year: y, month: m });
+                            }}
+                            className="bg-transparent text-sm font-medium text-foreground border-none outline-none cursor-pointer"
+                        >
+                            {availableMonths.map(({ year, month }) => (
+                                <option key={`${year}-${month}`} value={`${year}-${month}`}>
+                                    {new Date(year, month - 1).toLocaleString("en", { month: "long", year: "numeric" })}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+
+            </div>
+
 
             <IncidentDetailsPop
                 open={!!popupIncident}
                 onClose={() => setPopupIncident(null)}
                 incident={popupIncident}
             />
-        </div>
+        </>
     );
 }

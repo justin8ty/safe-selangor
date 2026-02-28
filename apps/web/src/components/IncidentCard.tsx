@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, MapPin } from "lucide-react";
+import { Clock, MapPin, Landmark, ShieldCheck, Sparkles } from "lucide-react";
 import { formatRelativeTime } from "@/lib/utils";
 
 interface IncidentCardProps {
@@ -9,13 +9,17 @@ interface IncidentCardProps {
     district: string | null;
     state: string | null;
     time: string | null;
+    landmarkLabel?: string | null;
+    aiConfidence?: number | null;
     isSelected?: boolean;
     onClick?: () => void;
 }
 
 export default function IncidentCard({
-    type, description, district, state, time, isSelected, onClick
+    type, description, district, state, time, landmarkLabel, aiConfidence, isSelected, onClick
 }: IncidentCardProps) {
+    const isGeminiVerified = (aiConfidence ?? 0) >= 90;
+
     return (
         <div
             onClick={onClick}
@@ -54,10 +58,26 @@ export default function IncidentCard({
 
             <p className="text-sm font-normal mb-1 line-clamp-1">{description ?? "No description provided."}</p>
 
+            {aiConfidence !== undefined && (
+                <span
+                    className={`text-xs mt-1 flex items-center gap-1 ${isGeminiVerified ? "text-cyan-500" : "text-green-600"}`}
+                >
+                    {isGeminiVerified ? <Sparkles size={12} /> : <ShieldCheck size={12} />}
+                    {isGeminiVerified ? "Gemini Verified" : "Moderator Verified"}
+                </span>
+            )}
+
             {district && (
                 <span className="text-xs text-muted-foreground flex items-center gap-1 mt-2">
                     <MapPin size={12} />
-                    {district}
+                    {district}{state ? `, ${state}` : ""}
+                </span>
+            )}
+
+            {landmarkLabel && (
+                <span className="text-xs text-muted-foreground mt-1 flex items-center gap-1 line-clamp-1">
+                    <Landmark size={12} />
+                    Near {landmarkLabel}
                 </span>
             )}
         </div>
