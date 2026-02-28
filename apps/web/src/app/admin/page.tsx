@@ -9,15 +9,19 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import VerificationQueue from "../../components/VerificationQueue";
 import IncidentDetailsPanel from "../../components/IncidentDetailsPanel";
 import { useRealTime } from "@/hooks/useRealTime";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function AdminPage() {
     const [selectedIncident, setSelectedIncident] = useState<ModerationQueueItem | null>(null);
 
-    useRealTime([["moderation-reports"]])
+    const { user } = useAuth();
+
+    useRealTime([["moderation-reports"]], !!user);
 
     const { data, isLoading } = useQuery({
         queryKey: ["moderation-reports"],
         queryFn: getModerationReports,
+        enabled: !!user,
     });
 
     const items: ModerationQueueItem[] = data?.items ?? [];

@@ -2,8 +2,10 @@ import { useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { queryClient } from "@/lib/client";
 
-export function useRealTime(queryKeys: string[][]) {
+export function useRealTime(queryKeys: string[][], enabled: boolean = true) {
     useEffect(() => {
+        if (!enabled) return;
+
         const channel = supabase
             .channel("reports-changes")
             .on("postgres_changes", {
@@ -22,5 +24,5 @@ export function useRealTime(queryKeys: string[][]) {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, []);
+    }, [queryKeys, enabled]);
 }

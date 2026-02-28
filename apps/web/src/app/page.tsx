@@ -18,7 +18,7 @@ const DISTRICTS = [
 ];
 
 export default function Home() {
-  useRealTime([["feed"]])
+  useRealTime([["feed"], ["safetyScores"], ["districtReportCounts"]]);
 
   const { user } = useAuth();
 
