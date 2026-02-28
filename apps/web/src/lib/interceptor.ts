@@ -6,13 +6,20 @@ const axiosInstance = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001",
 });
 
-axiosInstance.interceptors.request.use(
-    async (config: InternalAxiosRequestConfig) => {
-        const { data } = await supabase.auth.getSession();
-        const token = data.session?.access_token;
+let cachedToken: string | null = null;
 
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+supabase.auth.getSession().then(({ data }) => {
+    cachedToken = data.session?.access_token || null;
+}).catch(() => { });
+
+supabase.auth.onAuthStateChange((_event, session) => {
+    cachedToken = session?.access_token || null;
+});
+
+axiosInstance.interceptors.request.use(
+    (config: InternalAxiosRequestConfig) => {
+        if (cachedToken) {
+            config.headers.Authorization = `Bearer ${cachedToken}`;
         }
 
         return config;
