@@ -1,14 +1,10 @@
+from dotenv import load_dotenv
 from supabase import create_client
 import os
-from calculate_live import calculate_current
+import calculate_live
+import runpy
 import time
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")  # for server-side full access
-
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-POLL_INTERVAL = 5  # seconds
 
 def main():
     print("Stats worker started...")
@@ -36,7 +32,7 @@ def main():
             .execute()
 
         try:
-            calculate_current(report_id)
+            runpy.run_module("calculate_live", run_name="__main__", alter_sys=True)
 
             # Mark job done
             supabase.table("stats_jobs")\
@@ -47,18 +43,27 @@ def main():
             print(f"Job {job_id} done.")
 
         except Exception as e:
-            # Mark failed and increment attempts
-            supabase.table("stats_jobs")\
-                .update({
-                    "status": "failed",
-                    "attempts": supabase.table("stats_jobs").increment("attempts", 1),
-                    "error": str(e)
-                })\
-                .eq("id", job_id)\
-                .execute()
+            # Fetch current attempts
+            job_row = supabase.table("stats_jobs").select("attempts").eq("id", job_id).execute()
+            current_attempts = job_row.data[0].get("attempts") or 0
+
+            # Update job as failed
+            supabase.table("stats_jobs").update({
+                "status": "failed",
+                "attempts": current_attempts + 1,
+                "error": str(e)
+            }).eq("id", job_id).execute()
+
             print(f"Job {job_id} failed: {e}")
 
         time.sleep(0.1)
 
 if __name__ == "__main__":
+    load_dotenv()
+    SUPABASE_URL = os.getenv("DB_URL")
+    SUPABASE_KEY = os.getenv("API_KEY")  # for server-side full access
+
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+    POLL_INTERVAL = 1  # seconds
     main()
