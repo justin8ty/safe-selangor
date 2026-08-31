@@ -14,7 +14,7 @@ async def data_extraction(raw_markdown: str):
     print("Starting LLM structured data extraction demo...")
     
     load_dotenv()
-    LLM_KEY = os.getenv("LLM_API_KEY_1")
+    LLM_KEY = os.getenv("GEMINI_API_KEY")
 
     extraction_strategy = LLMExtractionStrategy(
         llm_config= LLMConfig(
@@ -128,8 +128,9 @@ def insert_Data(data):
 
 
 if __name__ == "__main__":
-    SUPABASE_URL = os.getenv("DB_URL")
-    SUPABASE_KEY = os.getenv("API_KEY")
+    load_dotenv()
+    SUPABASE_URL = os.getenv("SUPABASE_URL")
+    SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 

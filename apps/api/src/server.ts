@@ -16,7 +16,11 @@ const app = Fastify({ logger: true });
 
 app.decorateRequest("authUser", null);
 
-await app.register(cors, { origin: true });
+await app.register(cors, {
+  origin: env.CORS_ORIGIN
+    ? env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
+    : true,
+});
 await app.register(cookie);
 
 app.get("/healthz", async () => ({ status: "ok" }));

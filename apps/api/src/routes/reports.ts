@@ -186,7 +186,7 @@ export async function reportsRoutes(app: FastifyInstance): Promise<void> {
         req.log.warn({ error: metricsErr }, "Failed to init report metrics");
       }
 
-      void runReportPipeline({
+      await runReportPipeline({
         reportId: parsed.data.reportId,
         userId,
         storageKeys: parsed.data.storageKeys,

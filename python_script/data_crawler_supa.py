@@ -87,8 +87,9 @@ def load_urls(db_path: str, limit :int) -> List[str]:
 
 
 if __name__ == "__main__":
-    SUPABASE_URL = os.getenv("DB_URL")
-    SUPABASE_KEY = os.getenv("API_KEY")
+    load_dotenv()
+    SUPABASE_URL = os.getenv("SUPABASE_URL")
+    SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
     urls=load_urls('crime_data.db', 10)

@@ -9,6 +9,7 @@ const envSchema = z.object({
   GEMINI_API_KEY: z.string().min(1),
   MAX_UPLOAD_MB: z.coerce.number().positive().default(10),
   MAX_IMAGES_PER_REPORT: z.coerce.number().positive().default(3),
+  CORS_ORIGIN: z.string().min(1).optional(),
   PORT: z.coerce.number().positive().default(3001),
 });
 
