@@ -192,12 +192,6 @@ npm run dev
 ## Python Module
 
 ```bash
-#Create and activate virtual environment  
-python3 -m venv venv  
-#Linux/macOS  
-source venv/bin/activate  
-#Windows  
-venv\Scripts\activate  
-  
-#Install Python dependencies  
-pip install -r requirements.txt
+cd python_script
+uv sync
+```
