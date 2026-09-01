@@ -37,6 +37,7 @@ export default function ReportPop({ open, onClose }: ReportModalProps) {
     const [images, setImages] = useState<ReportImage[]>([]);
     const [submitting, setSubmitting] = useState(false);
     const [loadingLocation, setLoadingLocation] = useState(false);
+    const [manualLocationRequired, setManualLocationRequired] = useState(false);
     const [uploading, setUploading] = useState(false);
 
     // Reset form when opened
@@ -53,6 +54,7 @@ export default function ReportPop({ open, onClose }: ReportModalProps) {
             });
             setSubmitting(false);
             setLoadingLocation(false);
+            setManualLocationRequired(false);
             setUploading(false);
         }
     }, [open]);
@@ -72,6 +74,31 @@ export default function ReportPop({ open, onClose }: ReportModalProps) {
 
         let cancelled = false;
 
+        async function loadDistricts() {
+            try {
+                const res = await fetch("/map.geojson");
+                const geo = (await res.json()) as {
+                    features?: Array<{ properties?: { name?: unknown } }>;
+                };
+
+                const names = Array.from(
+                    new Set(
+                        (geo.features || [])
+                            .map((feature) => feature?.properties?.name)
+                            .filter(
+                                (name): name is string =>
+                                    typeof name === "string" && name.trim().length > 0
+                            )
+                            .map((name) => name.trim())
+                    )
+                ).sort((a, b) => a.localeCompare(b));
+
+                if (!cancelled) setDistricts(names);
+            } catch {
+                if (!cancelled) toast.error("Failed to load location choices.");
+            }
+        }
+
         async function initDraft() {
             setLoadingLocation(true);
             try {
@@ -82,52 +109,26 @@ export default function ReportPop({ open, onClose }: ReportModalProps) {
                     });
                 });
 
-                const lat = pos.coords.latitude;
-                const lng = pos.coords.longitude;
-                if (cancelled) return;
-
-                const draft = await createReportDraft({ lat, lng });
+                const draft = await createReportDraft({
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                });
                 if (cancelled) return;
 
                 setReportId(draft.reportId);
-
-                // Preselect computed district if available.
-                if (draft.district) {
-                    setLocation(draft.district);
-                }
-
-                // Populate select options from local geojson so it matches the map.
-                const res = await fetch("/map.geojson");
-                const geo = (await res.json()) as {
-                    features?: Array<{ properties?: { name?: unknown } }>;
-                };
-
-                const names = Array.from(
-                    new Set(
-                        (geo.features || [])
-                            .map((f) => f?.properties?.name)
-                            .filter(
-                                (n): n is string =>
-                                    typeof n === "string" && n.trim().length > 0
-                            )
-                            .map((n) => n.trim())
-                    )
-                ).sort((a, b) => a.localeCompare(b));
-                if (!cancelled) setDistricts(names);
-            } catch (err) {
+                if (draft.district) setLocation(draft.district);
+            } catch {
                 if (!cancelled) {
-                    toast.error(
-                        err instanceof Error
-                            ? err.message
-                            : "Failed to get your precise location. Please allow location access."
-                    );
+                    setManualLocationRequired(true);
+                    toast.error("Location access unavailable. Please enter your location manually.");
                 }
             } finally {
                 if (!cancelled) setLoadingLocation(false);
             }
         }
 
-        initDraft();
+        void loadDistricts();
+        void initDraft();
 
         return () => {
             cancelled = true;
@@ -143,6 +144,22 @@ export default function ReportPop({ open, onClose }: ReportModalProps) {
         images.some((i) => i.status === "uploaded") &&
         !submitting &&
         !uploading;
+
+    async function handleLocationChange(nextLocation: string) {
+        setLocation(nextLocation);
+        if (!nextLocation || reportId) return;
+
+        setLoadingLocation(true);
+        try {
+            const draft = await createReportDraft({ district: nextLocation });
+            setReportId(draft.reportId);
+            setManualLocationRequired(false);
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to save location");
+        } finally {
+            setLoadingLocation(false);
+        }
+    }
 
     async function signAndUploadPending(nextImages: ReportImage[]) {
         const pending = nextImages.filter((img) => img.status === "pending");
@@ -283,11 +300,12 @@ export default function ReportPop({ open, onClose }: ReportModalProps) {
                         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <select
                             value={location}
-                            onChange={(e) => setLocation(e.target.value)}
+                            onChange={(e) => void handleLocationChange(e.target.value)}
+                            disabled={loadingLocation}
                             className="w-full rounded-lg border border-input bg-background px-4 py-3 pl-10 text-sm text-foreground appearance-none"
                         >
                             <option value="">
-                                {loadingLocation ? "Getting your location..." : "Select region..."}
+                                {loadingLocation ? "Getting your location..." : "Select location..."}
                             </option>
                             {districts.map((d) => (
                                 <option key={d} value={d}>
@@ -296,6 +314,11 @@ export default function ReportPop({ open, onClose }: ReportModalProps) {
                             ))}
                         </select>
                     </div>
+                    {manualLocationRequired && (
+                        <p className="mt-2 text-sm text-muted-foreground">
+                            Please enter your location manually.
+                        </p>
+                    )}
                 </div>
 
                 {/* 2. Incident Type */}

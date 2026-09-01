@@ -16,7 +16,7 @@ export async function locationHandler(
     .maybeSingle();
 
   if (error) throw error;
-  if (!data) throw new Error("Missing private report location");
+  if (!data) return ctx;
 
   return { ...ctx, lat: data.lat as number, lng: data.lng as number };
 }

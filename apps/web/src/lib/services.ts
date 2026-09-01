@@ -17,7 +17,9 @@ export async function createReport(data: CreateReportInput) {
     return await postRequest({ url: "/reports/submit", data });
 }
 
-export async function createReportDraft(data: { lat: number; lng: number }) {
+export async function createReportDraft(
+    data: { lat: number; lng: number } | { district: string },
+) {
     return await postRequest({ url: "/reports/draft", data });
 }
 

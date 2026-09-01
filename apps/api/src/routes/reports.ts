@@ -12,10 +12,15 @@ import {
 } from "../services/districts.ts";
 import { mergeDescriptionParts } from "../services/text.ts";
 
-const createDraftBodySchema = z.object({
-  lat: z.number(),
-  lng: z.number(),
-});
+const createDraftBodySchema = z.union([
+  z.object({
+    lat: z.number(),
+    lng: z.number(),
+  }),
+  z.object({
+    district: z.string().trim().min(1),
+  }),
+]);
 
 const submitBodySchema = z.object({
   reportId: z.string().min(1),
@@ -50,10 +55,16 @@ export async function reportsRoutes(app: FastifyInstance): Promise<void> {
       const userId = req.authUser?.userId;
       if (!userId) return reply.status(401).send({ error: "Unauthorized" });
 
-      const match = await matchDistrictFromLatLng({
-        lat: parsed.data.lat,
-        lng: parsed.data.lng,
-      });
+      const match =
+        "district" in parsed.data
+          ? {
+              district: parsed.data.district,
+              state: await getStateForDistrict(parsed.data.district),
+            }
+          : await matchDistrictFromLatLng({
+              lat: parsed.data.lat,
+              lng: parsed.data.lng,
+            });
 
       const { data: reportRow, error: reportErr } = await supabase
         .from("reports")
@@ -76,13 +87,20 @@ export async function reportsRoutes(app: FastifyInstance): Promise<void> {
 
       const reportId = reportRow.id as string;
 
-      const { error: locErr } = await supabase
-        .from("report_location_private")
-        .insert({
-          report_id: reportId,
-          lat: parsed.data.lat,
-          lng: parsed.data.lng,
-        });
+      if ("lat" in parsed.data) {
+        const { error: locErr } = await supabase
+          .from("report_location_private")
+          .insert({
+            report_id: reportId,
+            lat: parsed.data.lat,
+            lng: parsed.data.lng,
+          });
+
+        if (locErr) {
+          req.log.error({ error: locErr }, "Failed to store private location");
+          return reply.status(500).send({ error: "Failed to store location" });
+        }
+      }
 
       const { error: locErr2 } = await supabase
         .from("stats_jobs")
@@ -91,12 +109,8 @@ export async function reportsRoutes(app: FastifyInstance): Promise<void> {
           status : "pending"
         });
 
-      if (locErr) {
-        req.log.error({ error: locErr }, "Failed to store private location");
-        return reply.status(500).send({ error: "Failed to store location" });
-      }
       if (locErr2) {
-        req.log.error({ error: locErr }, "Failed to activate worker");
+        req.log.error({ error: locErr2 }, "Failed to activate worker");
         return reply.status(500).send({ error: "Failed to store location" });
       }
 
