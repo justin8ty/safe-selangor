@@ -5,7 +5,6 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useMutation } from "@tanstack/react-query";
 import { loginUser } from "@/lib/services";
-import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,17 +20,19 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 export default function LoginPage() {
-    const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
     const { mutate: login, isPending } = useMutation({
-        mutationFn: () => loginUser({ email, password }),
-        onSuccess: (data) => {
-            supabase.auth.setSession({
+        mutationFn: async () => {
+            const data = await loginUser({ email, password });
+            const { error } = await supabase.auth.setSession({
                 access_token: data.accessToken,
                 refresh_token: data.refreshToken,
             });
+            if (error) throw error;
+        },
+        onSuccess: () => {
             window.location.href = "/";
         },
         onError: (error: unknown) =>
