@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 
 interface AuthUser {
@@ -20,49 +21,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        supabase.auth.getSession().then(({ data }) => {
-            if (data.session?.user) {
-                supabase
-                    .from("profiles")
-                    .select("role")
-                    .eq("id", data.session.user.id)
-                    .single()
-                    .then(({ data: profile, error }) => {
-                        setUser({
-                            id: data.session!.user.id,
-                            email: data.session!.user.email ?? "",
-                            role: error ? null : (profile?.role ?? null),
-                        });
-                        setIsLoading(false);
-                    });
-            } else {
-                setUser(null);
-                setIsLoading(false);
-            }
-        });
+        let active = true;
+        let generation = 0;
 
-        const { data: listener } = supabase.auth.onAuthStateChange(
-            async (event, session) => {
-                if (session?.user) {
-                    const { data: profile } = await supabase
-                        .from("profiles")
-                        .select("role")
-                        .eq("id", session.user.id)
-                        .single();
-
-                    setUser({
-                        id: session.user.id,
-                        email: session.user.email ?? "",
-                        role: profile?.role ?? null,
-                    });
-                } else {
+        const hydrateSession = async (session: Session | null, currentGeneration: number) => {
+            if (!session?.user) {
+                if (active && currentGeneration === generation) {
                     setUser(null);
                     setIsLoading(false);
                 }
+                return;
+            }
+
+            let role: string | null = null;
+            try {
+                const { data: profile } = await supabase
+                    .from("profiles")
+                    .select("role")
+                    .eq("id", session.user.id)
+                    .maybeSingle();
+                role = profile?.role ?? null;
+            } catch {
+                role = null;
+            }
+
+            if (active && currentGeneration === generation) {
+                setUser({
+                    id: session.user.id,
+                    email: session.user.email ?? "",
+                    role,
+                });
+                setIsLoading(false);
+            }
+        };
+
+        const { data: listener } = supabase.auth.onAuthStateChange(
+            (_event, session) => {
+                const currentGeneration = ++generation;
+                setIsLoading(true);
+
+                // Return from the auth callback before querying Supabase. Awaiting
+                // another Supabase call here can deadlock the auth client lock.
+                queueMicrotask(() => {
+                    void hydrateSession(session, currentGeneration);
+                });
             }
         );
 
-        return () => listener.subscription.unsubscribe();
+        return () => {
+            active = false;
+            listener.subscription.unsubscribe();
+        };
     }, []);
 
     return (
